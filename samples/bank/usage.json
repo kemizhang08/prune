@@ -1,0 +1,9 @@
+{
+  "source": "Chalk AI Gateway export (stubbed sample), last 30 days",
+  "calls": {
+    "bank/categorize.py::categorize_transaction": {
+      "calls_per_month": 1200000, "avg_input_tokens": 80, "avg_output_tokens": 4,
+      "model_seen": "gpt-4o", "recorded_requests": 0
+    }
+  }
+}

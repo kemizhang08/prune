@@ -1,0 +1,6 @@
+[review]
+approval_threshold_usd = 100
+
+[features.spending-insights]
+budget_usd = 120
+paths = ["bank/categorize.py"]

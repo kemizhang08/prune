@@ -1,0 +1,500 @@
+{"id": 1, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 2, "input": "How long does express shipping take for the trail runners?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 3, "input": "Changed my mind about the leather boots, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 4, "input": "Changed my mind about the leather boots, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 5, "input": "Please refund order SU-301004. The leather boots are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 6, "input": "Changed my mind about the kids' sandals, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 7, "input": "Changed my mind about the leather boots, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 8, "input": "I'd like to return the kids' sandals I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 9, "input": "Tracking for SU-341012 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 10, "input": "Where is my order SU-431569? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 11, "input": "Do you ship the suede loafers to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 12, "input": "How long does express shipping take for the leather boots?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 13, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 14, "input": "Do you ship the kids' sandals to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 15, "input": "Tracking for SU-794779 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 16, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 17, "input": "Changed my mind about the suede loafers, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 18, "input": "Where is my order SU-589247? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 19, "input": "When will the suede loafers be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 20, "input": "Changed my mind about the suede loafers, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 21, "input": "Hi, I was charged twice for order SU-390360, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 22, "input": "I'd like to return the trail runners I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 23, "input": "I'd like to return the trail runners I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 24, "input": "How long does express shipping take for the suede loafers?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 25, "input": "The kids' sandals squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 26, "input": "Do you ship the kids' sandals to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 27, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 28, "input": "Where is my order SU-646326? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 29, "input": "Please refund order SU-115865. The trail runners are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 30, "input": "How do I clean suede kids' sandals?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 31, "input": "Where is my order SU-233351? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 32, "input": "The kids' sandals squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 33, "input": "Can I change the delivery address for SU-802868 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 34, "input": "Please refund order SU-669300. The suede loafers are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 35, "input": "Do the suede loafers come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 36, "input": "I'd like to return the Cloudstep sneakers I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 37, "input": "Can I return the trail runners without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 38, "input": "Do you ship the kids' sandals to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 39, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 40, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 41, "input": "Can I return the court shoes without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 42, "input": "Are the suede loafers good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 43, "input": "The suede loafers squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 44, "input": "Can I return the trail runners without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 45, "input": "Box was damaged in transit but the Cloudstep sneakers look fine, just letting you know.", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 46, "input": "Please refund order SU-117401. The trail runners are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 47, "input": "Where is my order SU-469111? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 48, "input": "Tracking for SU-865711 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 49, "input": "Do the Cloudstep sneakers come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 50, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 51, "input": "Hi, I was charged twice for order SU-546016, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 52, "input": "How long does express shipping take for the trail runners?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 53, "input": "Can I change the delivery address for SU-528161 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 54, "input": "The suede loafers squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 55, "input": "Hi, I was charged twice for order SU-997040, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 56, "input": "Changed my mind about the trail runners, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 57, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 58, "input": "Box was damaged in transit but the leather boots look fine, just letting you know.", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 59, "input": "I'd like to return the suede loafers I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 60, "input": "Changed my mind about the Cloudstep sneakers, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 61, "input": "Can I return the Cloudstep sneakers without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 62, "input": "Can I change the delivery address for SU-538178 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 63, "input": "Box was damaged in transit but the suede loafers look fine, just letting you know.", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 64, "input": "Changed my mind about the kids' sandals, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 65, "input": "Please refund order SU-367332. The kids' sandals are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 66, "input": "How long does express shipping take for the kids' sandals?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 67, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 68, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 69, "input": "Please refund order SU-833011. The suede loafers are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 70, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 71, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 72, "input": "Tracking for SU-826643 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 73, "input": "Can I return the court shoes without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 74, "input": "Do you ship the trail runners to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 75, "input": "Where is my order SU-188687? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 76, "input": "How long does express shipping take for the Cloudstep sneakers?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 77, "input": "Do you ship the leather boots to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 78, "input": "Can I change the delivery address for SU-364423 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 79, "input": "How long does express shipping take for the trail runners?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 80, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 81, "input": "How long does express shipping take for the Cloudstep sneakers?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 82, "input": "Can I return the leather boots without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 83, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 84, "input": "The kids' sandals arrived with a broken buckle, I want a refund please.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 85, "input": "How do I clean suede leather boots?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 86, "input": "Please refund order SU-554648. The court shoes are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 87, "input": "The trail runners squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 88, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 89, "input": "How long does express shipping take for the trail runners?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 90, "input": "Changed my mind about the court shoes, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 91, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 92, "input": "Where is my order SU-598675? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 93, "input": "How long does express shipping take for the Cloudstep sneakers?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 94, "input": "Can I return the trail runners without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 95, "input": "Hi, I was charged twice for order SU-795259, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 96, "input": "Do you ship the suede loafers to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 97, "input": "Do you ship the suede loafers to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 98, "input": "The kids' sandals squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 99, "input": "Please refund order SU-261374. The court shoes are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 100, "input": "Can I return the court shoes without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 101, "input": "When will the suede loafers be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 102, "input": "The kids' sandals arrived with a broken buckle, I want a refund please.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 103, "input": "Do the trail runners come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 104, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 105, "input": "Tracking for SU-534795 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 106, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 107, "input": "How long does express shipping take for the kids' sandals?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 108, "input": "The kids' sandals squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 109, "input": "Hi, I was charged twice for order SU-462746, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 110, "input": "Are the kids' sandals good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 111, "input": "Hi, I was charged twice for order SU-534664, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 112, "input": "Changed my mind about the leather boots, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 113, "input": "When will the kids' sandals be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 114, "input": "Is a broken lace covered by the warranty on the Cloudstep sneakers?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 115, "input": "Can I return the kids' sandals without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 116, "input": "Changed my mind about the Cloudstep sneakers, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 117, "input": "Changed my mind about the leather boots, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 118, "input": "Hi, I was charged twice for order SU-861151, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 119, "input": "Can I return the kids' sandals without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 120, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 121, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 122, "input": "Can I return the kids' sandals without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 123, "input": "Hi, I was charged twice for order SU-444953, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 124, "input": "Do you ship the court shoes to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 125, "input": "Do the trail runners come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 126, "input": "Hi, I was charged twice for order SU-746923, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 127, "input": "Can I return the leather boots without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 128, "input": "The kids' sandals squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 129, "input": "Are the kids' sandals good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 130, "input": "Are the suede loafers good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 131, "input": "Do you ship the leather boots to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 132, "input": "I'd like to return the Cloudstep sneakers I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 133, "input": "The Cloudstep sneakers squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 134, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 135, "input": "Do you ship the leather boots to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 136, "input": "Can I change the delivery address for SU-245423 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 137, "input": "Changed my mind about the Cloudstep sneakers, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 138, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 139, "input": "How long does express shipping take for the leather boots?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 140, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 141, "input": "Can I return the court shoes without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 142, "input": "Where is my order SU-195514? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 143, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 144, "input": "Do you ship the court shoes to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 145, "input": "Tracking for SU-105569 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 146, "input": "The trail runners squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 147, "input": "Are the leather boots good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 148, "input": "Can I change the delivery address for SU-787655 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 149, "input": "Where is my order SU-782770? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 150, "input": "Are the Cloudstep sneakers good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 151, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 152, "input": "Do you ship the suede loafers to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 153, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 154, "input": "I'd like to return the leather boots I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 155, "input": "The leather boots squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 156, "input": "How do I clean suede Cloudstep sneakers?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 157, "input": "How long does express shipping take for the suede loafers?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 158, "input": "Do the trail runners come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 159, "input": "How long does express shipping take for the court shoes?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 160, "input": "Changed my mind about the kids' sandals, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 161, "input": "How long does express shipping take for the suede loafers?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 162, "input": "Hi, I was charged twice for order SU-560092, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 163, "input": "Hi, I was charged twice for order SU-418493, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 164, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 165, "input": "Changed my mind about the court shoes, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 166, "input": "Strap broken after two days, can I return the leather boots for my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 167, "input": "Tracking for SU-564897 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 168, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 169, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 170, "input": "Can I return the suede loafers without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 171, "input": "Do the Cloudstep sneakers come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 172, "input": "Please refund order SU-633326. The court shoes are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 173, "input": "How long does express shipping take for the court shoes?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 174, "input": "Is a broken lace covered by the warranty on the leather boots?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 175, "input": "Hi, I was charged twice for order SU-298716, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 176, "input": "Box was damaged in transit but the kids' sandals look fine, just letting you know.", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 177, "input": "When will the kids' sandals be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 178, "input": "Do you ship the Cloudstep sneakers to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 179, "input": "Please refund order SU-303617. The suede loafers are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 180, "input": "Changed my mind about the kids' sandals, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 181, "input": "How do I clean suede kids' sandals?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 182, "input": "Do the court shoes come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 183, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 184, "input": "Hi, I was charged twice for order SU-463866, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 185, "input": "Hi, I was charged twice for order SU-815323, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 186, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 187, "input": "Hi, I was charged twice for order SU-724624, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 188, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 189, "input": "When will the trail runners be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 190, "input": "Changed my mind about the leather boots, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 191, "input": "The leather boots arrived with a broken buckle, I want a refund please.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 192, "input": "Changed my mind about the court shoes, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 193, "input": "How do I clean suede suede loafers?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 194, "input": "The court shoes squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 195, "input": "Please refund order SU-181690. The trail runners are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 196, "input": "I'd like to return the Cloudstep sneakers I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 197, "input": "Tracking for SU-910794 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 198, "input": "Do you ship the trail runners to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 199, "input": "Can I change the delivery address for SU-578289 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 200, "input": "Do the suede loafers come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 201, "input": "Do the kids' sandals come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 202, "input": "Can I change the delivery address for SU-504995 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 203, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 204, "input": "Tracking for SU-250433 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 205, "input": "Can I change the delivery address for SU-786520 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 206, "input": "How long does express shipping take for the leather boots?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 207, "input": "When will the Cloudstep sneakers be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 208, "input": "I'd like to return the kids' sandals I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 209, "input": "When will the suede loafers be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 210, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 211, "input": "The Cloudstep sneakers squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 212, "input": "Is a broken lace covered by the warranty on the Cloudstep sneakers?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 213, "input": "Are the kids' sandals good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 214, "input": "Can I return the suede loafers without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 215, "input": "Changed my mind about the suede loafers, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 216, "input": "Is a broken lace covered by the warranty on the trail runners?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 217, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 218, "input": "The court shoes squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 219, "input": "Please refund order SU-304940. The court shoes are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 220, "input": "Where is my order SU-981487? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 221, "input": "Do you ship the court shoes to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 222, "input": "Can I change the delivery address for SU-861425 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 223, "input": "Hi, I was charged twice for order SU-297687, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 224, "input": "How long does express shipping take for the kids' sandals?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 225, "input": "Please refund order SU-594364. The court shoes are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 226, "input": "Can I change the delivery address for SU-650282 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 227, "input": "Where is my order SU-785941? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 228, "input": "How do I clean suede court shoes?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 229, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 230, "input": "I'd like to return the Cloudstep sneakers I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 231, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 232, "input": "Changed my mind about the trail runners, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 233, "input": "Box was damaged in transit but the trail runners look fine, just letting you know.", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 234, "input": "Changed my mind about the trail runners, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 235, "input": "Tracking for SU-689344 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 236, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 237, "input": "How long does express shipping take for the court shoes?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 238, "input": "Changed my mind about the suede loafers, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 239, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 240, "input": "Do you ship the Cloudstep sneakers to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 241, "input": "How long does express shipping take for the leather boots?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 242, "input": "How do I clean suede kids' sandals?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 243, "input": "Changed my mind about the Cloudstep sneakers, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 244, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 245, "input": "Hi, I was charged twice for order SU-121275, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 246, "input": "I'd like to return the leather boots I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 247, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 248, "input": "How do I clean suede Cloudstep sneakers?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 249, "input": "Changed my mind about the leather boots, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 250, "input": "Are the leather boots good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 251, "input": "The kids' sandals arrived with a broken buckle, I want a refund please.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 252, "input": "Tracking for SU-756514 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 253, "input": "Can I change the delivery address for SU-200907 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 254, "input": "How long does express shipping take for the suede loafers?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 255, "input": "Where is my order SU-461056? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 256, "input": "Tracking for SU-875443 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 257, "input": "Box was damaged in transit but the leather boots look fine, just letting you know.", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 258, "input": "When will the suede loafers be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 259, "input": "The leather boots squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 260, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 261, "input": "The suede loafers squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 262, "input": "Is a broken lace covered by the warranty on the kids' sandals?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 263, "input": "Can I change the delivery address for SU-566178 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 264, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 265, "input": "Do the kids' sandals come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 266, "input": "Do you ship the Cloudstep sneakers to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 267, "input": "Can I return the court shoes without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 268, "input": "When will the kids' sandals be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 269, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 270, "input": "How long does express shipping take for the trail runners?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 271, "input": "I'd like to return the Cloudstep sneakers I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 272, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 273, "input": "Can I return the kids' sandals without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 274, "input": "Are the suede loafers good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 275, "input": "How do I clean suede court shoes?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 276, "input": "How long does express shipping take for the leather boots?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 277, "input": "How long does express shipping take for the court shoes?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 278, "input": "Where is my order SU-776802? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 279, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 280, "input": "The Cloudstep sneakers squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 281, "input": "Can I change the delivery address for SU-997359 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 282, "input": "The trail runners squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 283, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 284, "input": "Can I change the delivery address for SU-924745 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 285, "input": "Do you ship the Cloudstep sneakers to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 286, "input": "Can I return the Cloudstep sneakers without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 287, "input": "Changed my mind about the suede loafers, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 288, "input": "Are the trail runners good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 289, "input": "Changed my mind about the leather boots, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 290, "input": "Where is my order SU-829075? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 291, "input": "When will the Cloudstep sneakers be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 292, "input": "Do you ship the leather boots to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 293, "input": "Please refund order SU-843163. The trail runners are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 294, "input": "Where is my order SU-944310? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 295, "input": "I'd like to return the court shoes I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 296, "input": "Do you ship the suede loafers to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 297, "input": "Can I return the Cloudstep sneakers without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 298, "input": "I'd like to return the leather boots I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 299, "input": "How long does express shipping take for the kids' sandals?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 300, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 301, "input": "The leather boots arrived with a broken buckle, I want a refund please.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 302, "input": "Can I change the delivery address for SU-697057 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 303, "input": "Do you ship the kids' sandals to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 304, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 305, "input": "I'd like to return the Cloudstep sneakers I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 306, "input": "I'd like to return the leather boots I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 307, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 308, "input": "Hi, I was charged twice for order SU-906132, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 309, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 310, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 311, "input": "Can I change the delivery address for SU-257878 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 312, "input": "Do you ship the court shoes to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 313, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 314, "input": "Are the trail runners good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 315, "input": "Please refund order SU-504888. The leather boots are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 316, "input": "Is a broken lace covered by the warranty on the court shoes?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 317, "input": "Can I return the leather boots without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 318, "input": "I'd like to return the kids' sandals I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 319, "input": "When will the Cloudstep sneakers be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 320, "input": "I'd like to return the leather boots I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 321, "input": "Hi, I was charged twice for order SU-673469, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 322, "input": "The kids' sandals squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 323, "input": "The Cloudstep sneakers squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 324, "input": "Tracking for SU-283180 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 325, "input": "Tracking for SU-770642 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 326, "input": "The Cloudstep sneakers squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 327, "input": "Do you ship the leather boots to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 328, "input": "Are the kids' sandals good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 329, "input": "Can I change the delivery address for SU-605210 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 330, "input": "Can I change the delivery address for SU-186559 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 331, "input": "Do you ship the trail runners to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 332, "input": "Do the Cloudstep sneakers come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 333, "input": "How long does express shipping take for the leather boots?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 334, "input": "Hi, I was charged twice for order SU-174775, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 335, "input": "How do I clean suede leather boots?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 336, "input": "Are the kids' sandals good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 337, "input": "How long does express shipping take for the Cloudstep sneakers?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 338, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 339, "input": "Changed my mind about the kids' sandals, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 340, "input": "Where is my order SU-223561? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 341, "input": "Changed my mind about the court shoes, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 342, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 343, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 344, "input": "Can I change the delivery address for SU-216624 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 345, "input": "Do the leather boots come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 346, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 347, "input": "Hi, I was charged twice for order SU-822637, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 348, "input": "Do you ship the court shoes to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 349, "input": "Box was damaged in transit but the leather boots look fine, just letting you know.", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 350, "input": "Can I return the kids' sandals without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 351, "input": "I'd like to return the trail runners I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 352, "input": "Strap broken after two days, can I return the suede loafers for my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 353, "input": "How long does express shipping take for the trail runners?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 354, "input": "Are the trail runners good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 355, "input": "Can I return the trail runners without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 356, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 357, "input": "Do you ship the kids' sandals to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 358, "input": "I'd like to return the court shoes I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 359, "input": "Box was damaged and the heel is broken. Refund please?", "before": "refund", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 360, "input": "Do the Cloudstep sneakers come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 361, "input": "Can I return the Cloudstep sneakers without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 362, "input": "Please refund order SU-614357. The suede loafers are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 363, "input": "When will the trail runners be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 364, "input": "Is a broken lace covered by the warranty on the leather boots?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 365, "input": "Hi, I was charged twice for order SU-186794, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 366, "input": "I'd like to return the suede loafers I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 367, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 368, "input": "Where is my order SU-706210? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 369, "input": "Strap broken after two days, can I return the Cloudstep sneakers for my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 370, "input": "Changed my mind about the kids' sandals, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 371, "input": "Sneakers came damaged, can you send new ones or credit my card?", "before": "refund", "after": {"gpt-4o-mini": "other"}}
+{"id": 372, "input": "Strap broken after two days, can I return the trail runners for my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 373, "input": "Box was damaged in transit but the court shoes look fine, just letting you know.", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 374, "input": "How long does express shipping take for the kids' sandals?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 375, "input": "Please refund order SU-228644. The kids' sandals are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 376, "input": "Hi, I was charged twice for order SU-735523, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 377, "input": "How do I clean suede Cloudstep sneakers?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 378, "input": "The suede loafers arrived with a broken buckle, I want a refund please.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 379, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 380, "input": "I'd like to return the suede loafers I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 381, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 382, "input": "Tracking for SU-604028 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 383, "input": "Is a broken lace covered by the warranty on the Cloudstep sneakers?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 384, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 385, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 386, "input": "Tracking for SU-633379 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 387, "input": "Are the kids' sandals good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 388, "input": "How long does express shipping take for the court shoes?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 389, "input": "I'd like to return the Cloudstep sneakers I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 390, "input": "How long does express shipping take for the suede loafers?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 391, "input": "Tracking for SU-297863 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 392, "input": "Strap broken after two days, can I return the Cloudstep sneakers for my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 393, "input": "Can I return the Cloudstep sneakers without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 394, "input": "The court shoes arrived with a broken buckle, I want a refund please.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 395, "input": "When will the Cloudstep sneakers be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 396, "input": "Can I return the leather boots without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 397, "input": "Box was damaged in transit but the court shoes look fine, just letting you know.", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 398, "input": "Do the leather boots come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 399, "input": "Can I return the trail runners without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 400, "input": "Tracking for SU-542470 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 401, "input": "I'd like to return the court shoes I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 402, "input": "When will the trail runners be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 403, "input": "Tracking for SU-121592 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 404, "input": "Where is my order SU-279594? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 405, "input": "Are the suede loafers good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 406, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 407, "input": "I'd like to return the leather boots I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 408, "input": "The trail runners arrived with a broken buckle, I want a refund please.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 409, "input": "Changed my mind about the court shoes, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 410, "input": "Where is my order SU-623147? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 411, "input": "The kids' sandals squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 412, "input": "Is a broken lace covered by the warranty on the Cloudstep sneakers?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 413, "input": "Tracking for SU-352833 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 414, "input": "The trail runners arrived with a broken buckle, I want a refund please.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 415, "input": "Box was damaged in transit but the trail runners look fine, just letting you know.", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 416, "input": "Is there a student discount? - [NAME]", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 417, "input": "Hi, I was charged twice for order SU-831883, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 418, "input": "Hi, I was charged twice for order SU-776694, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 419, "input": "Can I return the suede loafers without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 420, "input": "Strap broken after two days, can I return the Cloudstep sneakers for my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 421, "input": "Hi, I was charged twice for order SU-550114, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 422, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 423, "input": "Do you ship the suede loafers to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 424, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 425, "input": "My shoes arrived broken, I want my money back", "before": "refund", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 426, "input": "Where is my order SU-562221? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 427, "input": "I'd like to return the Cloudstep sneakers I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 428, "input": "The Cloudstep sneakers arrived with a broken buckle, I want a refund please.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 429, "input": "How do I clean suede kids' sandals?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 430, "input": "The leather boots squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 431, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 432, "input": "Can I return the Cloudstep sneakers without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 433, "input": "Where is my order SU-851265? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 434, "input": "Please refund order SU-686336. The suede loafers are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 435, "input": "The Cloudstep sneakers arrived with a broken buckle, I want a refund please.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 436, "input": "Do you ship the trail runners to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 437, "input": "Where is my order SU-342572? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 438, "input": "Is a broken lace covered by the warranty on the court shoes?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 439, "input": "When will the suede loafers be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 440, "input": "Can I return the Cloudstep sneakers without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 441, "input": "Changed my mind about the leather boots, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 442, "input": "Do you ship the court shoes to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 443, "input": "How do I clean suede trail runners?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 444, "input": "Tracking for SU-851791 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 445, "input": "Tracking for SU-998163 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 446, "input": "Is a broken lace covered by the warranty on the court shoes?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 447, "input": "Hi, I was charged twice for order SU-533977, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 448, "input": "Can I change the delivery address for SU-995631 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 449, "input": "Where is my order SU-934311? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 450, "input": "I'd like to return the suede loafers I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 451, "input": "Please refund order SU-700773. The court shoes are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 452, "input": "Do you ship the suede loafers to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 453, "input": "Do the leather boots come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 454, "input": "Can I use two gift cards on one order?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 455, "input": "Can I return the leather boots without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 456, "input": "The leather boots squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 457, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 458, "input": "Tracking for SU-758523 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 459, "input": "I'd like to return the kids' sandals I bought, they don't fit. Can I get my money back?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 460, "input": "Is a broken lace covered by the warranty on the leather boots?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 461, "input": "Can I return the suede loafers without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 462, "input": "How long does express shipping take for the Cloudstep sneakers?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 463, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 464, "input": "Can I return the kids' sandals without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 465, "input": "Can I change the delivery address for SU-363798 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 466, "input": "Do the suede loafers come in a half size?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 467, "input": "The suede loafers squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 468, "input": "Tracking for SU-670012 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 469, "input": "Tracking for SU-261717 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 470, "input": "Changed my mind about the leather boots, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 471, "input": "Please refund order SU-420868. The kids' sandals are too narrow.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 472, "input": "Changed my mind about the leather boots, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 473, "input": "When will the kids' sandals be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 474, "input": "Is a broken lace covered by the warranty on the kids' sandals?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 475, "input": "The kids' sandals squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 476, "input": "Tracking for SU-596061 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 477, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 478, "input": "Tracking for SU-451523 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 479, "input": "Changed my mind about the suede loafers, how do I get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 480, "input": "Tracking for SU-428668 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 481, "input": "Delivery van left my parcel damaged and soaked at [ADDRESS], where is the replacement shipment?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 482, "input": "Do you ship the trail runners to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 483, "input": "The court shoes squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 484, "input": "The leather boots squeak when I walk. I want a refund. [NAME]", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 485, "input": "When will the kids' sandals be back in stock?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 486, "input": "Can I return the court shoes without the original box and still get a refund?", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 487, "input": "How do I clean suede Cloudstep sneakers?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 488, "input": "Hi, I was charged twice for order SU-331328, please refund one of them.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 489, "input": "Do you ship the trail runners to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 490, "input": "Tracking for SU-771397 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 491, "input": "The court shoes arrived with a broken buckle, I want a refund please.", "before": "refund", "after": {"gpt-4o-mini": "refund"}}
+{"id": 492, "input": "My parcel says delivered but nothing arrived at [ADDRESS].", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 493, "input": "Where is my order SU-751367? It's been a week.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 494, "input": "Are the Cloudstep sneakers good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 495, "input": "Tracking for SU-380555 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 496, "input": "Can I change the delivery address for SU-425871 to [ADDRESS]?", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 497, "input": "Are the kids' sandals good for running on trails?", "before": "other", "after": {"gpt-4o-mini": "other"}}
+{"id": 498, "input": "Tracking for SU-538691 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 499, "input": "Tracking for SU-969324 hasn't updated since Monday.", "before": "shipping", "after": {"gpt-4o-mini": "shipping"}}
+{"id": 500, "input": "Is a broken lace covered by the warranty on the kids' sandals?", "before": "other", "after": {"gpt-4o-mini": "other"}}

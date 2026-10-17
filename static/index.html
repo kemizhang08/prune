@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prune</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M16 29V14' stroke='%232f7d4f' stroke-width='3' stroke-linecap='round'/><path d='M16 15c0-7 5-11 12-11 0 7-5 11-12 11zM16 19C16 13 12 9 5 9c0 6 4 10 11 10z' fill='%232f7d4f'/></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path d="M16 29V14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M16 15c0-7 5-11 12-11 0 7-5 11-12 11zM16 19C16 13 12 9 5 9c0 6 4 10 11 10z" fill="currentColor"/></svg>
+      <div>
+        <div class="brand-name">Prune</div>
+        <div class="brand-tag">A spell-checker for AI spending</div>
+      </div>
+    </div>
+    <nav class="projects" id="projectTabs" aria-label="Project">
+      <button data-sample="stepup">StepUp Shoes <span class="muted">sample</span></button>
+      <button data-sample="bank">Northwind Bank <span class="muted">sample</span></button>
+      <button data-paste>Paste code</button>
+    </nav>
+  </header>
+
+  <section class="meters" id="meters" aria-live="polite"></section>
+
+  <main class="layout">
+    <aside class="side">
+      <div class="panel">
+        <div class="panel-head"><h2>Findings</h2><span class="muted small" id="findingsMeta"></span></div>
+        <div id="findings" class="findings"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>All AI calls</h2><span class="muted small">by monthly cost</span></div>
+        <div id="sites"></div>
+      </div>
+    </aside>
+    <section class="detail" id="detail">
+      <div class="empty">Load a project to start a review.</div>
+    </section>
+  </main>
+
+  <section class="lower">
+    <div class="panel" id="budgetPanel"></div>
+    <div class="panel" id="incomingPanel"></div>
+    <div class="panel" id="ledgerPanel"></div>
+  </section>
+
+  <footer class="foot">
+    <span id="sourceNote"></span>
+    <span>Energy is a range (per-1k-token figures by model size, cited sources) · Carbon = energy × grid intensity 0.25–0.45 kg/kWh · Chalk sandboxes, AI Gateway and Federated Queries are stubbed behind interfaces in this build.</span>
+  </footer>
+
+  <dialog id="pasteDialog">
+    <form method="dialog" class="paste">
+      <h2>Review your own code</h2>
+      <p class="muted">Python. Prune finds OpenAI-style, Anthropic, Gemini, LiteLLM and LangChain calls. With no usage data, traffic is your estimate and is labelled as one.</p>
+      <div class="row">
+        <label>File name <input id="pasteName" value="app.py"></label>
+        <label>Calls per month (estimate) <input id="pasteCalls" type="number" min="1" value="25000"></label>
+        <button type="button" class="ghost" id="pasteExample">Insert example</button>
+      </div>
+      <textarea id="pasteCode" spellcheck="false" placeholder="Paste Python code that calls an AI model…"></textarea>
+      <div class="row end">
+        <button value="cancel" class="ghost">Cancel</button>
+        <button id="pasteGo" value="go" class="primary">Review code</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>

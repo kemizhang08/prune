@@ -1,0 +1,24 @@
+# Prune settings for StepUp Shoes. Lives in the repo, reviewed like code.
+
+[review]
+approval_threshold_usd = 50   # a change adding more than this per month needs a manager's approval
+
+[features.support-triage]
+budget_usd = 150
+paths = ["stepup/classify.py", "stepup/reply.py"]
+
+[features.ask-ai-widget]
+budget_usd = 250
+paths = ["stepup/ask_ai.py"]
+
+[features.merch-digest]
+budget_usd = 25
+paths = ["stepup/nightly_digest.py"]
+
+[features.returns-agent]
+budget_usd = 100
+paths = ["stepup/returns_agent.py"]
+
+[features.storefront]
+budget_usd = 100
+paths = ["stepup/product_page.py"]

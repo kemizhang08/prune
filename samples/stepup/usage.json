@@ -1,0 +1,35 @@
+{
+  "source": "Chalk AI Gateway export (stubbed sample), last 30 days",
+  "calls": {
+    "stepup/classify.py::classify_ticket": {
+      "calls_per_month": 40000, "avg_input_tokens": 4400, "avg_output_tokens": 650,
+      "model_seen": "gpt-4o", "cacheable_prefix_tokens": 4000, "recorded_requests": 500
+    },
+    "stepup/classify.py::extract_order_id": {
+      "calls_per_month": 40000, "avg_input_tokens": 430, "avg_output_tokens": 6, "model_seen": "gpt-4o"
+    },
+    "stepup/ask_ai.py::answer_question": {
+      "calls_per_month": 12000, "avg_input_tokens": 7800, "avg_output_tokens": 420,
+      "model_seen": "gpt-4o", "cacheable_prefix_tokens": 4000, "recorded_requests": 0
+    },
+    "stepup/reply.py::summarize": {
+      "calls_per_month": 80000, "avg_input_tokens": 350, "avg_output_tokens": 80,
+      "model_seen": "gpt-4o-mini", "duplicate_share": 0.5
+    },
+    "stepup/nightly_digest.py::summarize_review": {
+      "calls_per_month": 172800, "avg_input_tokens": 250, "avg_output_tokens": 60,
+      "model_seen": "gpt-4o", "unique_request_share": 0.007
+    },
+    "stepup/returns_agent.py::run_returns_agent": {
+      "calls_per_month": 21000, "avg_input_tokens": 1800, "avg_output_tokens": 150,
+      "model_seen": "gpt-4o", "runaway_call_share": 0.25, "retry_call_share": 0.08
+    }
+  },
+  "incoming": {
+    "title": "PR #42: AI product blurb on every page view",
+    "file": "stepup/product_page.py",
+    "source_file": "incoming/product_page.py",
+    "calls_per_month": 300000,
+    "traffic_source": "analytics: ~300k product page views a month (estimate)"
+  }
+}
