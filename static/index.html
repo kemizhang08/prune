@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Prune</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230a0a0b'/><path d='M16 27V14' stroke='%23f4f2ee' stroke-width='2.4'/><path d='M16 15c0-6 4-9 9-9 0 6-4 9-9 9z' fill='%23ff6b2c'/><path d='M16 18c0-5-3-8-8-8 0 5 3 8 8 8z' fill='%238b5cf6'/></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230a0a0b'/><path d='M16 27V14' stroke='%23f4f2ee' stroke-width='2.4'/><path d='M16 15c0-6 4-9 9-9 0 6-4 9-9 9z' fill='%234fae8a'/><path d='M16 18c0-5-3-8-8-8 0 5 3 8 8 8z' fill='%238b5cf6'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -13,16 +13,15 @@
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
       <linearGradient id="gPurple" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c4b5fd"/><stop offset="1" stop-color="#6d28d9"/></linearGradient>
-      <linearGradient id="gOrange" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb07a"/><stop offset="1" stop-color="#ff5a1f"/></linearGradient>
+      <linearGradient id="gGreen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9edcc0"/><stop offset="1" stop-color="#2f8f6a"/></linearGradient>
       <radialGradient id="gGlow"><stop offset="0" stop-color="#a78bfa" stop-opacity=".45"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></radialGradient>
-      <radialGradient id="gGlowO"><stop offset="0" stop-color="#ff6b2c" stop-opacity=".35"/><stop offset="1" stop-color="#ff6b2c" stop-opacity="0"/></radialGradient>
-      <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="6" fill="#ff6b2c"/></pattern>
+      <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="6" fill="#4fae8a"/></pattern>
     </defs>
   </svg>
 
   <header class="top">
     <a class="brand" href="#find" data-tab="find">
-      <svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true"><path d="M16 28V14" stroke="#f4f2ee" stroke-width="2.2"/><path d="M16 15c0-6 4-9 9-9 0 6-4 9-9 9z" fill="#ff6b2c"/><path d="M16 18c0-5-3-8-8-8 0 5 3 8 8 8z" fill="#8b5cf6"/></svg>
+      <svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true"><path d="M16 28V14" stroke="#f4f2ee" stroke-width="2.2"/><path d="M16 15c0-6 4-9 9-9 0 6-4 9-9 9z" fill="#4fae8a"/><path d="M16 18c0-5-3-8-8-8 0 5 3 8 8 8z" fill="#8b5cf6"/></svg>
       <span>Prune</span>
     </a>
     <nav class="loop" id="tabs" aria-label="Steps">
@@ -34,7 +33,7 @@
       <span class="arrow" aria-hidden="true"></span>
       <button data-tab="remember"><b>4</b>Remember</button>
       <span class="sep" aria-hidden="true"></span>
-      <button data-tab="guard" class="guard-link">Guard</button>
+      <button data-tab="budgets">Budgets</button>
     </nav>
     <select id="projectPick" aria-label="Project">
       <option value="stepup">StepUp Shoes</option>
@@ -48,7 +47,7 @@
     <section class="view" id="view-prove"></section>
     <section class="view" id="view-ship"></section>
     <section class="view" id="view-remember"></section>
-    <section class="view" id="view-guard"></section>
+    <section class="view" id="view-budgets"></section>
   </main>
 
   <dialog id="pasteDialog">

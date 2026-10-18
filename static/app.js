@@ -76,8 +76,9 @@ function tag(f, g) {
 
 // ---------- state ----------
 
-const TABS = ["find", "prove", "ship", "remember", "guard"];
-const state = { project: null, initialSites: {}, selected: null, busy: null, ledger: [], tab: "find", review: null, receipts: {}, lastSample: "stepup" };
+const TABS = ["find", "prove", "ship", "remember", "budgets"];
+const state = { project: null, initialSites: {}, selected: null, busy: null, ledger: [], tab: "find", receipts: {}, lastSample: "stepup",
+  incomingCheck: null, limits: {}, addedLimits: {}, threshold: null, editing: null, decision: null };
 
 async function api(path, body) {
   const res = await fetch(path, body === undefined ? {} : {
@@ -108,8 +109,8 @@ function setProject(p, fresh) {
   state.project = p;
   if (fresh) {
     state.initialSites = Object.fromEntries(p.sites.map((s) => [s.id, s]));
-    state.review = null;
     state.receipts = {};
+    Object.assign(state, { incomingCheck: null, limits: {}, addedLimits: {}, threshold: null, editing: null, decision: null });
     state.selected = p.groups.find((g) => g.has_edits)?.id || p.groups[0]?.id || null;
   }
 }
@@ -119,6 +120,7 @@ async function loadSample(sample) {
   $("#projectPick").value = sample;
   await run("load", async () => setProject(await api("/api/load", { sample }), true));
   refreshLedger();
+  checkIncoming();
 }
 
 async function refreshLedger() {
@@ -192,9 +194,9 @@ function treeArt() {
     }
     if (frac < 0.98) {
       const [kx, ky] = at(Math.max(frac, 0.04));
-      out += `<rect x="${(kx - 4).toFixed(1)}" y="${(ky - 4).toFixed(1)}" width="8" height="8" fill="#ff6b2c" transform="rotate(45 ${kx.toFixed(1)} ${ky.toFixed(1)})"/>`;
+      out += `<rect x="${(kx - 4).toFixed(1)}" y="${(ky - 4).toFixed(1)}" width="8" height="8" fill="#4fae8a" transform="rotate(45 ${kx.toFixed(1)} ${ky.toFixed(1)})"/>`;
       for (let k = 0; k < 3; k++) {
-        out += `<ellipse class="fall" style="--dx:${((r() - .5) * 80).toFixed(0)}px;animation-delay:${(k * 1.1 + r()).toFixed(2)}s" cx="${kx.toFixed(1)}" cy="${(ky + 6).toFixed(1)}" rx="7" ry="2.8" fill="${k === 1 ? "#ff6b2c" : "#c4b5fd"}"/>`;
+        out += `<ellipse class="fall" style="--dx:${((r() - .5) * 80).toFixed(0)}px;animation-delay:${(k * 1.1 + r()).toFixed(2)}s" cx="${kx.toFixed(1)}" cy="${(ky + 6).toFixed(1)}" rx="7" ry="2.8" fill="${k === 1 ? "#ffffff" : "#c4b5fd"}"/>`;
       }
     }
     out += `</g>`;
@@ -208,7 +210,7 @@ function skyArt(kg) {
   let bubbles = "";
   for (let i = 0; i < count; i++) {
     const x = 30 + r() * 1140, y = 120 + r() * 30, s = 2.5 + r() * 6;
-    bubbles += `<circle class="bubble" style="animation-delay:${(r() * 6).toFixed(2)}s;animation-duration:${(5 + r() * 4).toFixed(1)}s" cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${s.toFixed(1)}" fill="none" stroke="${i % 5 === 0 ? "#ff6b2c" : "#c4b5fd"}" stroke-width="1.3"/>`;
+    bubbles += `<circle class="bubble" style="animation-delay:${(r() * 6).toFixed(2)}s;animation-duration:${(5 + r() * 4).toFixed(1)}s" cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${s.toFixed(1)}" fill="none" stroke="#c4b5fd" stroke-width="1.3"/>`;
   }
   return `<svg viewBox="0 0 1200 160" preserveAspectRatio="none" aria-hidden="true">
     ${bubbles}
@@ -222,7 +224,7 @@ function leavesArt() {
   const r = rand(11);
   let s = "";
   for (let i = 0; i < 11; i++) {
-    s += `<ellipse class="fall" style="--dx:${((r() - .5) * 70).toFixed(0)}px;animation-delay:${(r() * 3).toFixed(2)}s" cx="${(30 + r() * 360).toFixed(0)}" cy="${(8 + r() * 26).toFixed(0)}" rx="9" ry="3.6" fill="${i % 3 === 0 ? "#ff6b2c" : "url(#gPurple)"}"/>`;
+    s += `<ellipse class="fall" style="--dx:${((r() - .5) * 70).toFixed(0)}px;animation-delay:${(r() * 3).toFixed(2)}s" cx="${(30 + r() * 360).toFixed(0)}" cy="${(8 + r() * 26).toFixed(0)}" rx="9" ry="3.6" fill="${i % 4 === 0 ? "#ffffff" : "url(#gPurple)"}"/>`;
   }
   return `<svg class="leaves" viewBox="0 0 420 140" aria-hidden="true">${s}</svg>`;
 }
@@ -230,10 +232,10 @@ function leavesArt() {
 function sproutArt() {
   return `<svg viewBox="0 0 260 180" aria-hidden="true">
     <line x1="10" y1="160" x2="250" y2="160" stroke="#26252b"/>
-    <ellipse cx="130" cy="160" rx="90" ry="12" fill="url(#gGlowO)"/>
+    <ellipse cx="130" cy="160" rx="90" ry="12" fill="url(#gGlow)"/>
     <path d="M130 158 C 128 128, 132 104, 130 80" stroke="#f4f2ee" stroke-width="3" fill="none" stroke-linecap="round"/>
     <path class="breathe" d="M130 96 C 106 94, 94 74, 96 58 C 116 60, 128 76, 130 96z" fill="url(#gPurple)"/>
-    <path class="breathe" d="M130 84 C 152 80, 166 60, 164 44 C 144 48, 132 64, 130 84z" fill="url(#gOrange)"/>
+    <path class="breathe" d="M130 84 C 152 80, 166 60, 164 44 C 144 48, 132 64, 130 84z" fill="url(#gGreen)"/>
   </svg>`;
 }
 
@@ -445,7 +447,7 @@ function renderShip() {
     main = `<div class="empty">${sproutArt()}<div><p>Pick a fix and prove it first. Its receipt shows up here.</p><button class="outline" data-tab="find">See what Prune found</button></div></div>`;
   }
   const total = p.accepted.reduce((s, a) => s + a.saved_usd, 0);
-  const history = p.accepted.length ? `<div class="history"><div class="section-head"><h2>Shipped so far</h2><span class="serif orange" style="font-size:34px">−${usd(total)}/mo</span></div>
+  const history = p.accepted.length ? `<div class="history"><div class="section-head"><h2>Shipped so far</h2><span class="serif green" style="font-size:34px">−${usd(total)}/mo</span></div>
     <div class="rows">${p.accepted.map((a, i) => `<button class="row shipped" data-open="shipped:${esc(a.id)}"><span class="ix">${pad2(i + 1)}</span>
       <span class="nm">${esc(friendly(a.function))}</span><span class="ch">${rng(a.saved_kwh)} kWh less</span><span class="usd">−${about(a.saved_usd)}</span></button>`).join("")}</div></div>` : "";
   el.innerHTML = `<div class="wrap">${main}${history}</div>`;
@@ -463,7 +465,7 @@ function renderRemember() {
     ${e.length ? `<div class="lessons">${e.slice().reverse().map((x) => {
       const miss = x.matched < x.total ? Math.max(1, Math.round((1 - x.match_rate) * 60)) : 0;
       const bars = Array.from({ length: 60 }, (_, i) => { const same = i < 60 - miss;
-        return `<rect x="${i * 10}" y="${same ? 6 : 26}" width="5" height="${same ? 52 : 32}" fill="${same ? "url(#gPurple)" : "#ff6b2c"}"/>`; }).join("");
+        return `<rect x="${i * 10}" y="${same ? 6 : 26}" width="5" height="${same ? 52 : 32}" fill="${same ? "url(#gPurple)" : "#ffffff"}"/>`; }).join("");
       return `<div class="lesson"><div><div class="eyebrow">${x.decision === "accepted" ? "Approved" : "Turned down"} · ${esc(x.recorded_at.split(" ")[0])}</div>
           <div class="serif" style="margin-top:10px">${esc(short(x))}</div></div>
         <div><svg viewBox="0 0 600 64" preserveAspectRatio="none">${bars}</svg>
@@ -472,46 +474,118 @@ function renderRemember() {
       : `<div class="empty">${sproutArt()}<p>Nothing yet. Approve an answer check in Prove and the pattern lands here.</p></div>`}</div>`;
 }
 
-// ---------- GUARD ----------
+// ---------- BUDGETS ----------
 
-function renderGuard() {
-  const el = $("#view-guard");
+const FEATURE_NAMES = {
+  "support-triage": "Support email sorting",
+  "ask-ai-widget": "Website chat helper",
+  "merch-digest": "Review summaries",
+  "returns-agent": "Returns assistant",
+  storefront: "Product pages",
+  "spending-insights": "Spending insights",
+};
+const featureName = (k) => FEATURE_NAMES[k] || k.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+
+function budgetRows() {
+  const p = state.project;
+  const rows = p.budgets.map((b) => ({ key: b.feature, cost: b.cost, limit: state.limits[b.feature] ?? b.budget }));
+  for (const [k, v] of Object.entries(state.addedLimits)) rows.push({ key: k, cost: 0, limit: v });
+  return rows;
+}
+
+// The waiting change, judged against the limits as they are right now (edits included).
+function waitingChange(rows) {
+  const r = state.incomingCheck, inc = state.project.incoming;
+  if (!r || !inc) return null;
+  const threshold = state.threshold ?? state.project.approval_threshold;
+  const row = rows.find((x) => x.key === r.check.feature);
+  const after = (row ? row.cost : 0) + r.added_usd;
+  const reasons = [];
+  if (r.added_usd > threshold) reasons.push(`That's more than the ${usd(threshold)} a month you allow any single change to add.`);
+  if (row && after > row.limit) reasons.push(`It would take ${featureName(row.key)} to ${usd(after)} a month, over its ${usd(row.limit)} limit.`);
+  const fn = r.items[0]?.function;
+  return { r, inc, row, added: r.added_usd, reasons, name: fn ? friendly(fn) : "This change", feature: row?.key };
+}
+
+function limitRow(row, pending) {
+  const editing = state.editing === row.key;
+  const extra = pending && pending.feature === row.key && !state.decision ? pending.added : 0;
+  const max = Math.max(row.cost + extra, row.limit, 1) * 1.08;
+  const within = Math.min(row.cost, row.limit), over = Math.max(0, row.cost - row.limit);
+  const status = row.cost > row.limit ? `<b>Over by $${int(row.cost - row.limit)}</b>` : `$${int(row.limit - row.cost)} left`;
+  return `<div class="limit ${row.cost > row.limit ? "over" : ""}">
+    <span class="n">${esc(featureName(row.key))}</span>
+    <div class="bar" title="${usd(row.cost)} spent of ${usd(row.limit)}">
+      <i style="width:${(within / max) * 100}%"></i>
+      ${over ? `<s style="left:${(row.limit / max) * 100}%;width:${(over / max) * 100}%"></s>` : ""}
+      ${extra ? `<em style="left:${(row.cost / max) * 100}%;width:${(extra / max) * 100}%"></em>` : ""}
+      <u style="left:${(row.limit / max) * 100}%"></u></div>
+    ${editing
+      ? `<span class="s edit">$<input id="limitInput" type="number" min="0" value="${Math.round(row.limit)}"> a month</span>
+         <span class="acts"><button class="link" data-act="limit-save" data-key="${esc(row.key)}">Save</button></span>`
+      : `<span class="s">${usd(row.cost)} of ${usd(row.limit)}<br><small>${status}</small></span>
+         <span class="acts"><button class="link" data-act="limit-edit" data-key="${esc(row.key)}">Change</button></span>`}
+  </div>`;
+}
+
+function renderBudgets() {
+  const el = $("#view-budgets");
   const p = state.project;
   if (!p) { el.innerHTML = ""; return; }
-  if (el.dataset.project !== p.id) {
-    el.dataset.project = p.id;
-    const inc = p.incoming;
-    el.innerHTML = `<div class="wrap"><div class="guard">
-      <div><div class="eyebrow">Guard</div>
-        <h1 class="serif" style="font-size:clamp(40px,5vw,64px);line-height:1;margin:10px 0 12px">Catch new costs before they ship</h1>
-        <p class="muted" style="margin:0">${inc ? esc(inc.title.replace(/^PR #\d+:\s*/, "A new change: ")) : "Paste a new change to see what it would add."}</p>
-        <label class="field">Times it will run per month<input id="incCalls" type="number" value="${inc?.calls_per_month || 10000}"></label>
-        <input id="incFile" type="hidden" value="${esc(inc?.file || "new_feature.py")}">
-        <textarea id="incCode" spellcheck="false" placeholder="Paste the new code here">${esc(inc?.code || "")}</textarea>
-        <div class="btns" style="margin-top:18px"><button class="primary" data-act="review">Check this change<span class="arr">→</span></button></div></div>
-      <div class="verdict" id="verdict"></div></div>
-      <div class="limits" id="limits"></div></div>`;
-  }
-  const v = $("#verdict"), r = state.review;
-  if (!r) {
-    v.innerHTML = `<div class="eyebrow">Your limit</div><div class="num" style="color:var(--ink)">${usd(p.approval_threshold)}</div>
-      <p class="muted">A change that adds more than this a month needs a manager's OK.</p>`;
+  const rows = budgetRows();
+  const w = waitingChange(rows);
+  const flagged = w && w.reasons.length;
+  const threshold = state.threshold ?? p.approval_threshold;
+
+  let waiting;
+  if (!w) {
+    waiting = `<p class="muted">Nothing waiting. Prune checks every new code change against your limits before it goes live.</p>`;
+  } else if (state.decision) {
+    waiting = `<div class="result ${state.decision === "approved" ? "ok" : ""}"><span class="mark">${state.decision === "approved" ? "✓" : "↩"}</span>
+      ${state.decision === "approved" ? `You approved ${esc(w.name.toLowerCase())}. It can go live.` : `Sent back to the developer with the cost estimate.`}</div>
+      <p><button class="link" data-act="undo-decision">Undo</button></p>`;
+  } else if (!flagged) {
+    waiting = `<div class="result ok"><span class="mark">✓</span>${esc(w.name)} adds about ${about(w.added)} a month and fits your limits, so it can go live.</div>`;
   } else {
-    const c = r.check, stop = c.needs_approval || c.over_budget;
-    const max = Math.max(r.added_usd, c.threshold) * 1.08;
-    const kwh = r.items.reduce((a, i) => [a[0] + i.kwh[0], a[1] + i.kwh[1]], [0, 0]);
-    v.innerHTML = `<div class="eyebrow">This change would add</div>
-      <div class="num">${about(r.added_usd)}</div><div>a month, and ${rng(kwh)} kWh of energy</div>
-      <div class="scale"><div class="line"></div><div class="fill" style="width:${(r.added_usd / max) * 100}%"></div>
-        <div class="lim" style="left:${(c.threshold / max) * 100}%"><span>limit ${usd(c.threshold)}</span></div></div>
-      <div class="flag ${stop ? "stop" : "go"}">${stop ? "Flagged: needs a manager's OK" : "Within your limit"}</div>
-      ${c.feature && c.over_budget ? `<p class="muted" style="margin-top:14px">It would also push “${esc(c.feature.replace(/-/g, " "))}” past its ${usd(c.budget)} monthly budget.</p>` : ""}`;
+    waiting = `<div class="ask">
+      <div class="big-line">${esc(w.name)} would add about <span class="green">${about(w.added)}</span> a month.</div>
+      <ul class="reasons">${w.reasons.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+      <p class="muted small-note">Estimated from ${esc(w.inc.traffic_source.replace(/^analytics:\s*/, "").replace(/\s*\(estimate\)/, ""))}.</p>
+      <div class="btns"><button class="primary" data-act="decide-change" data-v="sent back">Send it back</button>
+        <button class="outline" data-act="decide-change" data-v="approved">Approve anyway</button></div>
+      <details class="code"><summary>See the new code</summary><pre>${esc(w.inc.code)}</pre></details></div>`;
   }
-  $("#limits").innerHTML = p.budgets.length ? `<div class="section-head" style="margin-top:28px"><h2>Monthly budgets</h2></div>
-    ${p.budgets.map((b) => { const max = Math.max(b.cost, b.budget) * 1.1 || 1;
-      return `<div class="limit ${b.over ? "over" : ""}"><span class="n">${esc(b.feature.replace(/-/g, " "))}</span>
-        <div class="bar"><i style="width:${(b.cost / max) * 100}%"></i><u style="left:${(b.budget / max) * 100}%"></u></div>
-        <span class="s">${usd(b.cost)} of ${usd(b.budget)}</span></div>`; }).join("")}` : "";
+
+  el.innerHTML = `<div class="wrap">
+    <div class="fix-head"><div><div class="eyebrow">Budgets</div><h1>Monthly AI budgets</h1></div></div>
+    <p class="lede">Give each part of your app a monthly limit for AI. Before a new code change goes live, Prune works out what it will cost and asks you first if it would go over.</p>
+
+    <div class="section"><div class="section-head"><h2>Your limits</h2><span class="legend"><span><i class="k"></i>Spent this month</span>${rows.some((r) => r.cost > r.limit) ? `<span><i class="o"></i>Over the limit</span>` : ""}${w && flagged && !state.decision ? `<span><i class="p"></i>Waiting change</span>` : ""}<span><i class="m"></i>Limit</span></span></div>
+      ${rows.length ? `<div class="limits">${rows.map((r) => limitRow(r, w)).join("")}</div>` : `<p class="muted">No limits yet. Add one below.</p>`}</div>
+
+    <div class="section"><div class="section-head"><h2>Waiting for your OK</h2>${w && flagged && !state.decision ? `<span class="badge">1</span>` : ""}</div>${waiting}</div>
+
+    <div class="section"><div class="section-head"><h2>Add a limit</h2></div>
+      <div class="add">
+        <label>Part of your app<input id="newName" placeholder="e.g. Search suggestions"></label>
+        <label>Limit per month<span class="money">$<input id="newAmount" type="number" min="0" placeholder="100"></span></label>
+        <button class="outline" data-act="limit-add">Add limit</button>
+      </div>
+      <div class="add rule">
+        <label>Ask me first when one change adds more than<span class="money">$<input id="thresholdInput" type="number" min="0" value="${Math.round(threshold)}"></span></label>
+        <span class="muted">a month</span>
+      </div></div>
+  </div>`;
+}
+
+async function checkIncoming() {
+  const p = state.project;
+  state.incomingCheck = null;
+  if (!p?.incoming) return;
+  try {
+    state.incomingCheck = await api("/api/review-change", { project: p.id, file: p.incoming.file, code: p.incoming.code, calls_per_month: p.incoming.calls_per_month });
+  } catch (e) { /* the page still works without it */ }
+  if (state.tab === "budgets") renderBudgets();
 }
 
 // ---------- shell ----------
@@ -521,7 +595,7 @@ function render() {
   $("#fixCount").textContent = p ? p.groups.filter((g) => g.has_edits).length || "" : "";
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === state.tab));
   document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + state.tab));
-  ({ find: renderFind, prove: renderProve, ship: renderShip, remember: renderRemember, guard: renderGuard })[state.tab]();
+  ({ find: renderFind, prove: renderProve, ship: renderShip, remember: renderRemember, budgets: renderBudgets })[state.tab]();
 }
 
 function go(tab) {
@@ -573,11 +647,22 @@ document.addEventListener("click", async (e) => {
     state.selected = "shipped:" + r.accepted.id;
     toast(`Shipped. Saving ${about(r.accepted.saved_usd)} a month`);
   });
-  if (act === "review") {
-    const body = { project: p.id, file: $("#incFile").value, code: $("#incCode").value, calls_per_month: $("#incCalls").value };
-    try { state.review = await api("/api/review-change", body); } catch (err) { toast(err.message); }
-    renderGuard();
+  if (act === "limit-edit") { state.editing = btn.dataset.key; renderBudgets(); $("#limitInput")?.focus(); }
+  if (act === "limit-save") {
+    const v = Number($("#limitInput").value);
+    if (v >= 0) { if (btn.dataset.key in state.addedLimits) state.addedLimits[btn.dataset.key] = v; else state.limits[btn.dataset.key] = v; }
+    state.editing = null;
+    renderBudgets();
   }
+  if (act === "limit-add") {
+    const name = $("#newName").value.trim(), v = Number($("#newAmount").value);
+    if (!name || !(v > 0)) { toast("Add a name and a monthly amount"); return; }
+    state.addedLimits[name] = v;
+    renderBudgets();
+    toast(`Limit added: ${name}, ${usd(v)} a month`);
+  }
+  if (act === "decide-change") { state.decision = btn.dataset.v; renderBudgets(); toast(btn.dataset.v === "approved" ? "Approved" : "Sent back to the developer"); }
+  if (act === "undo-decision") { state.decision = null; renderBudgets(); }
   if (act === "ledger-reset") {
     if (!confirm("Forget every pattern Prune has learned?")) return;
     await api("/api/ledger/reset", {});
@@ -587,6 +672,11 @@ document.addEventListener("click", async (e) => {
 });
 
 document.addEventListener("change", async (e) => {
+  if (e.target.id === "thresholdInput") {
+    const v = Number(e.target.value);
+    if (v >= 0) { state.threshold = v; renderBudgets(); }
+    return;
+  }
   if (e.target.id === "projectPick") {
     if (e.target.value === "paste") { $("#pasteDialog").showModal(); return; }
     loadSample(e.target.value);
