@@ -96,6 +96,12 @@ def build_group(site, module, modules, ctx):
             "included": included, "note": note, "estimate": estimate,
         })
 
+    # Why a change that alters answers can't be proven here.
+    no_history_note = (
+        "Proving this needs real past requests from the running app, and a GitHub link only includes the code, so it stays a suggestion."
+        if ctx.get("linked") else
+        "Proving this needs real past requests to compare answers, and none are saved for this call yet, so it stays a suggestion."
+    )
     model_line = site["kw_lines"].get("model")
     multiline_call = model_line is not None and model_line != site["line"]
     kw_indent = fixes.indent_of(_line(module, model_line)) if model_line else ""
@@ -215,7 +221,7 @@ def build_group(site, module, modules, ctx):
                 lambda p, pre=prefix: p.update(input_tokens=pre + (p["input_tokens"] - pre) * EST_HISTORY_KEEP_SHARE),
                 [mv["span"]["line"]], f"Send only the last {HISTORY_KEEP} chat messages",
                 included=can_replay,
-                note=None if can_replay else "Recording is off for this call, so Prune can't replay it. Turn on recording to prove this one.",
+                note=None if can_replay else no_history_note,
                 estimate=True)
 
         # 6. repeated prompt that isn't cached
@@ -276,7 +282,7 @@ def build_group(site, module, modules, ctx):
                         f"tasks, {ev['matched']:,}/{ev['total']:,} matched ({ev['match_rate'] * 100:.1f}%).")
             else:
                 proof, included = "advice", False
-                note = "No recorded requests to replay and no similar proven switch in the ledger yet, so this stays advice. Turn on recording to prove it."
+                note = no_history_note + " Prune hasn't seen a similar switch proven before either."
             if site["model_span"]:
                 if guard:
                     uv = site["user_var"] or "text"
