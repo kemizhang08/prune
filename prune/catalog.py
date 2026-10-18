@@ -40,7 +40,15 @@ MODELS = {
     "gemini-2.5-flash": (0.30, 0.075, 2.50, "small", "google"),
     "gemini-2.0-flash": (0.10, 0.025, 0.40, "small", "google"),
     "llama-3.1-70b": (0.59, 0.59, 0.79, "medium", "open"),
+    "llama-3.3-70b": (0.59, 0.59, 0.79, "medium", "open"),
     "llama-3.1-8b": (0.05, 0.05, 0.08, "small", "open"),
+    "llama-3.1-405b": (3.00, 3.00, 3.00, "large", "open"),
+    "claude-opus-4-5": (5.00, 0.50, 25.00, "large", "anthropic"),
+    "grok-4": (3.00, 0.75, 15.00, "large", "xai"),
+    # Embeddings: input only, no output tokens.
+    "text-embedding-3-large": (0.13, 0.13, 0.0, "small", "openai"),
+    "text-embedding-3-small": (0.02, 0.02, 0.0, "small", "openai"),
+    "text-embedding-ada-002": (0.10, 0.10, 0.0, "small", "openai"),
 }
 
 # Big model -> the small sibling Prune proposes first (same provider, cheapest that
@@ -62,6 +70,11 @@ SMALLER = {
     "gpt-4": "gpt-4o-mini",
     "gemini-2.5-pro": "gemini-2.5-flash",
     "llama-3.1-70b": "llama-3.1-8b",
+    "llama-3.3-70b": "llama-3.1-8b",
+    "llama-3.1-405b": "llama-3.1-8b",
+    "claude-opus-4-5": "claude-haiku-4-5",
+    "grok-4": "gpt-4o-mini",
+    "text-embedding-3-large": "text-embedding-3-small",
 }
 
 # kWh per 1,000 tokens processed, (low, high), by size class.
@@ -96,19 +109,35 @@ FAMILY_PRICES = {
     "medium": (3.00, 0.30, 15.00),
     "small": (0.25, 0.025, 1.25),
 }
-SMALL_HINTS = ("mini", "nano", "haiku", "flash", "lite", "small", "8b", "7b", "3b")
+SMALL_HINTS = ("mini", "nano", "haiku", "flash", "lite", "small", "8b", "7b", "3b", "embedding")
 MEDIUM_HINTS = ("sonnet", "70b", "mixtral", "medium")
+
+
+def normalize(name):
+    """'openai/o3' -> 'o3', 'anthropic/claude-opus-4.5' -> 'claude-opus-4-5'. Returns (vendor prefix, name)."""
+    name = (name or "").strip()
+    prefix = ""
+    if "/" in name:
+        prefix, name = name.split("/", 1)
+        prefix += "/"
+    if name.startswith("claude"):
+        name = name.replace(".", "-")
+    return prefix, name
+
+
+def _lookup(table, name):
+    if name in table:
+        return table[name]
+    # Dated snapshots and suffixed variants: gpt-4o-2024-08-06, llama-3.3-70b-versatile.
+    for key in sorted(table, key=len, reverse=True):
+        if name.startswith(key + "-"):
+            return table[key]
+    return None
 
 
 def model_info(name):
     """Return (input, cached, output, size, provider) or None for unknown models."""
-    if name in MODELS:
-        return MODELS[name]
-    # Tolerate dated snapshots like gpt-4o-2024-08-06.
-    for key in sorted(MODELS, key=len, reverse=True):
-        if name.startswith(key + "-20"):
-            return MODELS[key]
-    return None
+    return _lookup(MODELS, normalize(name)[1])
 
 
 def price_for(name):
@@ -134,10 +163,36 @@ def price_for(name):
 
 
 def smaller_model(name):
-    for key in sorted(SMALLER, key=len, reverse=True):
-        if name == key or name.startswith(key + "-20"):
-            return SMALLER[key]
-    return None
+    """The small sibling Prune suggests, keeping an OpenRouter-style vendor prefix."""
+    prefix, base = normalize(name)
+    if price_for(name)[0][3] == "small":
+        return None
+    target = _lookup(SMALLER, base)
+    if target is None:
+        low = base.lower()
+        if low.startswith("claude") and ("opus" in low or "sonnet" in low):
+            target = "claude-haiku-4-5"
+        elif low.startswith("gemini") and "pro" in low:
+            target = "gemini-2.5-flash"
+        elif low.startswith(("o1", "o3", "gpt-5", "gpt-4")) and not any(h in low for h in SMALL_HINTS):
+            target = "gpt-4o-mini"
+    if target is None:
+        return None
+    if prefix and not target.startswith(("claude", "gemini", "llama")):
+        return "openai/" + target if prefix != "openai/" else prefix + target
+    if prefix:
+        vendor = {"claude": "anthropic/", "gemini": "google/", "llama": "meta-llama/"}[target.split("-")[0]]
+        return vendor + target
+    return target
+
+
+REASONING_MODELS = ("o1", "o3", "o4", "gpt-5")
+
+
+def is_reasoning_model(name):
+    """Models that spend hidden 'thinking' tokens on every answer."""
+    base = normalize(name)[1].lower()
+    return base.startswith(("o1", "o3", "o4")) or (base.startswith("gpt-5") and "chat" not in base)
 
 
 # Everyday comparisons, applied to the middle of each range. Estimates.

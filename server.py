@@ -86,7 +86,7 @@ class Handler(SimpleHTTPRequestHandler):
                     record = state.accept(gid)
                     return self._json({"accepted": record, "project": state.payload()})
                 if route == "/api/traffic":
-                    state.set_traffic(body.get("site"), body.get("calls_per_month"))
+                    state.set_traffic(body.get("site"), body.get("calls_per_month"), body.get("entry"))
                     return self._json({"project": state.payload()})
                 if route == "/api/budget/limit":
                     state.set_limit(body["feature"], body.get("usd"))

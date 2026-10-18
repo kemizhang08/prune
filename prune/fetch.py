@@ -22,6 +22,9 @@ MAX_FILES = 3000
 MAX_TOTAL_BYTES = 40 * 1024 * 1024
 TIMEOUT_S = 60
 KEEP = (".py", ".ipynb")
+# Text the code may load into prompts (policy handbooks, knowledge bases) plus dependency lists.
+# Only sizes and item counts are used for estimates; nothing here is executed.
+DATA = (".md", ".txt", ".json", ".yaml", ".yml", ".csv", ".toml", ".cfg")
 SKIP_PARTS = {".git", "node_modules", "venv", ".venv", "site-packages", "__pycache__", "dist", "build"}
 
 URL_RE = re.compile(
@@ -122,8 +125,8 @@ def fetch(info, dest, on_progress=None):
             rel = _safe_rel(m.name, info["path"])
             if rel is None:
                 continue
-            is_config = str(rel) == "prune.toml"
-            if rel.suffix not in KEEP and not is_config:
+            is_data = rel.suffix in DATA
+            if rel.suffix not in KEEP and not is_data:
                 continue
             if m.size > MAX_FILE_BYTES or total + m.size > MAX_TOTAL_BYTES or files >= MAX_FILES:
                 skipped += 1
@@ -132,7 +135,7 @@ def fetch(info, dest, on_progress=None):
             out = dest.joinpath(*rel.parts)
             out.parent.mkdir(parents=True, exist_ok=True)
             out.write_text(raw.decode("utf-8", errors="replace"))
-            files += 1
+            files += 0 if is_data else 1
             total += m.size
     if files == 0:
         raise FetchError("No Python files in that repo, so there's nothing for Prune to read. Prune reads .py files and notebooks.")

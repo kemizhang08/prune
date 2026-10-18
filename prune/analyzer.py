@@ -12,6 +12,18 @@ from . import catalog
 
 SKIP_DIRS = {"tests", "test", ".venv", "venv", "node_modules", "incoming", "__pycache__", ".git"}
 LANGCHAIN_CLASSES = {"ChatOpenAI", "ChatAnthropic", "ChatGoogleGenerativeAI", "ChatLiteLLM", "AzureChatOpenAI", "ChatGroq"}
+AI_HOSTS = {
+    "openrouter.ai": "OpenRouter",
+    "api.openai.com": "OpenAI",
+    "api.anthropic.com": "Anthropic",
+    "generativelanguage.googleapis.com": "Gemini",
+    "api.groq.com": "Groq",
+    "together": "Together",
+    "api.mistral.ai": "Mistral",
+    "api.fireworks.ai": "Fireworks",
+    "api.deepseek.com": "DeepSeek",
+    "localhost:11434": "Ollama",
+}
 OPENAI_STYLE_HOSTS = {
     "openrouter": "OpenRouter",
     "groq": "Groq",
@@ -76,12 +88,17 @@ class Module:
         self.gemini_models = {}  # var -> model name
         self.base_url_label = None
         self.import_lines = []
+        self.values = {}  # NAME -> literal value (str, int, list, dict...)
+        self.mod_aliases = {}  # `import app.config as cfg` -> {"cfg": "app.config"}
         self._index()
 
     def _index(self):
         for node in self.tree.body:
             if isinstance(node, (ast.Import, ast.ImportFrom)):
                 self.import_lines.append(node.lineno)
+            if isinstance(node, ast.Import):
+                for a in node.names:
+                    self.mod_aliases[a.asname or a.name.split(".")[0]] = a.name if a.asname else a.name.split(".")[0]
             if isinstance(node, ast.ImportFrom) and node.module:
                 for a in node.names:
                     self.imports[a.asname or a.name] = (node.module, a.name)
@@ -89,6 +106,10 @@ class Module:
                         self.litellm_names.add(a.asname or a.name)
             if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
                 name = node.targets[0].id
+                try:
+                    self.values[name] = ast.literal_eval(node.value)
+                except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
+                    pass
                 s = self.literal_str(node.value)
                 if s is not None:
                     self.constants[name] = s
@@ -137,9 +158,14 @@ class Module:
         return ast.get_source_segment(self.src, node) or ""
 
 
+DATA_SUFFIXES = (".md", ".txt", ".json", ".yaml", ".yml", ".csv")
+MAX_DATA_BYTES = 1024 * 1024
+
+
 class Project:
-    def __init__(self, files):
-        """files: {relative posix path: source}."""
+    def __init__(self, files, data=None):
+        """files: {relative posix path: source}. data: {file name: {"size", "items"}} for prompt sizing."""
+        self.data = data or {}
         self.modules = {}
         self.errors = []
         for path, src in sorted(files.items()):
@@ -154,16 +180,29 @@ class Project:
     @classmethod
     def from_dir(cls, root):
         root = Path(root)
-        files = {}
+        files, data = {}, {}
         for p in sorted(root.rglob("*")):
-            if p.suffix not in (".py", ".ipynb") or not p.is_file() or p.is_symlink():
+            if not p.is_file() or p.is_symlink():
                 continue
             rel = p.relative_to(root)
             if any(part in SKIP_DIRS for part in rel.parts):
                 continue
+            if p.suffix in DATA_SUFFIXES and p.stat().st_size <= MAX_DATA_BYTES:
+                # Text the code loads into prompts: only its size (and item count) is used.
+                info = {"size": p.stat().st_size, "items": None}
+                if p.suffix == ".json":
+                    try:
+                        parsed = json.loads(p.read_text(errors="replace"))
+                        info["items"] = len(parsed) if isinstance(parsed, (list, dict)) else None
+                    except (json.JSONDecodeError, RecursionError):
+                        pass
+                data.setdefault(p.name, info)
+                continue
+            if p.suffix not in (".py", ".ipynb"):
+                continue
             text = p.read_text(errors="replace")
             files[rel.as_posix()] = notebook_to_python(text) if p.suffix == ".ipynb" else text
-        return cls(files)
+        return cls(files, data)
 
     def resolve_str(self, module, node):
         """Resolve a string expression to (text, const_name, is_constant)."""
@@ -195,8 +234,17 @@ class Project:
         if not ch:
             return None
         if ch[-3:] == ["chat", "completions", "create"]:
-            label = module.base_url_label
+            label = self._base_url_label(module, call, ch[0]) or module.base_url_label
             return ("OpenAI-style" + (f" ({label})" if label else ""), "chat.completions.create")
+        if ch[-2:] == ["embeddings", "create"]:
+            label = self._base_url_label(module, call, ch[0]) or module.base_url_label
+            return ("OpenAI-style" + (f" ({label})" if label else ""), "embeddings.create")
+        if ch[-1:] in (["post"], ["request"]) and ch[0] in ("requests", "httpx", "session", "aiohttp") and call.args:
+            url = self._url_value(module, call.args[0])
+            if url:
+                for hint, label in AI_HOSTS.items():
+                    if hint in url:
+                        return (f"HTTP ({label})", "http.post")
         if ch[-2:] == ["responses", "create"]:
             return ("OpenAI", "responses.create")
         if ch[-2:] == ["messages", "create"] and "threads" not in ch:
@@ -209,6 +257,54 @@ class Project:
             return ("LiteLLM", "completion")
         if len(ch) == 2 and ch[1] in ("invoke", "ainvoke", "predict", "batch") and ch[0] in module.langchain_vars:
             return ("LangChain", f"{module.langchain_vars[ch[0]][0]}.{ch[1]}")
+        return None
+
+    def _const(self, module, node):
+        """A constant value, following module constants and `config.X` style attributes."""
+        if isinstance(node, ast.Constant):
+            return node.value
+        if isinstance(node, ast.Name):
+            if node.id in module.values:
+                return module.values[node.id]
+            if node.id in module.imports:
+                pkg, name = module.imports[node.id]
+                other = self.by_dotted.get(pkg)
+                if other and name in other.values:
+                    return other.values[name]
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+            alias = node.value.id
+            target = None
+            if alias in module.imports:
+                pkg, attr = module.imports[alias]
+                target = self.by_dotted.get(f"{pkg}.{attr}")
+            elif alias in module.mod_aliases:
+                target = self.by_dotted.get(module.mod_aliases[alias])
+            if target and node.attr in target.values:
+                return target.values[node.attr]
+        return None
+
+    def _url_value(self, module, node):
+        v = self._const(module, node)
+        if isinstance(v, str):
+            return v
+        s = module.literal_str(node)
+        return s
+
+    def _base_url_label(self, module, call, client_var):
+        """Find `client = OpenAI(base_url=...)` for this call and name the host."""
+        fn = self.enclosing_function(call)
+        scopes = [fn, module.tree] if fn is not None else [module.tree]
+        for scope in scopes:
+            for n in ast.walk(scope):
+                if isinstance(n, ast.Assign) and isinstance(n.value, ast.Call) and any(
+                        isinstance(t, ast.Name) and t.id == client_var for t in n.targets):
+                    bu = kwarg(n.value, "base_url")
+                    url = self._url_value(module, bu.value) if bu else None
+                    if url:
+                        for hint, label in AI_HOSTS.items():
+                            if hint in url:
+                                return label
+                        return "custom endpoint"
         return None
 
     def enclosing_function(self, node):
@@ -233,7 +329,13 @@ class Project:
             if s["id"] in seen:
                 s["id"] = f"{s['id']}@{s['line']}"
             seen.add(s["id"])
-        self._project_context(sites)
+        from .callsites import expand  # wrappers -> one site per call, plus the call graph
+        sites, self.graph = expand(self, sites)
+        self._project_context([s for s in sites if not s.get("wrapper") and "via" not in s])
+        for s in sites:
+            s.setdefault("timer", None)
+            s.setdefault("batchable", None)
+            s.setdefault("duplicates", None)
         return sites
 
     def _site(self, module, call, kind):
@@ -275,14 +377,69 @@ class Project:
     def _span(self, node):
         return {"line": node.lineno, "col": node.col_offset, "end_col": node.end_col_offset, "end_line": node.end_lineno}
 
+    def _call_kwargs(self, module, call):
+        """Every parameter this call sends, in one place: keywords, a `json=payload` dict for
+        raw HTTP calls, and Gemini's `config=GenerateContentConfig(...)`."""
+        fn = self.enclosing_function(call)
+        kw = {k.arg: k.value for k in call.keywords if k.arg}
+        body = kw.get("json") or kw.get("data")
+        if isinstance(body, ast.Name) and fn is not None:
+            body_name = body.id
+            for n in ast.walk(fn):
+                if isinstance(n, ast.Assign) and isinstance(n.value, ast.Dict) and any(
+                        isinstance(t, ast.Name) and t.id == body_name for t in n.targets):
+                    body = n.value
+        if isinstance(body, ast.Dict):
+            for k, v in zip(body.keys, body.values):
+                if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                    kw.setdefault(k.value, v)
+        cfg = kw.get("config") or kw.get("generation_config")
+        if isinstance(cfg, ast.Call):
+            for k in cfg.keywords:
+                if k.arg:
+                    kw.setdefault(k.arg, k.value)
+        elif isinstance(cfg, ast.Dict):
+            for k, v in zip(cfg.keys, cfg.values):
+                if isinstance(k, ast.Constant) and isinstance(k.value, str):
+                    kw.setdefault(k.value, v)
+        for alias, canon in (("max_completion_tokens", "max_tokens"), ("max_output_tokens", "max_tokens"),
+                             ("system_instruction", "system"), ("contents", "prompt"), ("input", "prompt")):
+            if alias in kw:
+                kw.setdefault(canon, kw[alias])
+        r = kw.get("reasoning")
+        if isinstance(r, ast.Dict):
+            for k, v in zip(r.keys, r.values):
+                if isinstance(k, ast.Constant) and k.value == "effort":
+                    kw.setdefault("reasoning_effort", v)
+        return kw
+
     def _model_and_limits(self, module, call, site):
         for kw in call.keywords:
             if kw.arg:
                 site["kw_lines"][kw.arg] = kw.value.lineno
+        allkw = self._call_kwargs(module, call)
+        site["_kw"] = allkw
+        t = self._const(module, allkw.get("temperature")) if "temperature" in allkw else None
+        site["temperature"] = site["temperature_default"] = t if isinstance(t, (int, float)) else None
+        eff = self._const(module, allkw["reasoning_effort"]) if "reasoning_effort" in allkw else None
+        site["reasoning_effort"] = eff if isinstance(eff, str) else None
+        think = allkw.get("thinking")
+        site["thinking_budget"] = None
+        if isinstance(think, ast.Dict):
+            for k, v in zip(think.keys, think.values):
+                if isinstance(k, ast.Constant) and k.value == "budget_tokens":
+                    b = self._const(module, v)
+                    site["thinking_budget"] = b if isinstance(b, int) else None
         m = kwarg(call, "model")
         ch = attr_chain(call.func) or []
+        if m is None and "model" in allkw:
+            v = self._const(module, allkw["model"])
+            site["model"] = v if isinstance(v, str) else None
         if m:
             text, name, _ = self.resolve_str(module, m.value)
+            if text is None:
+                v = self._const(module, m.value)
+                text = v if isinstance(v, str) else None
             site["model"] = text
             if isinstance(m.value, ast.Constant):
                 site["model_span"] = self._span(m.value)
@@ -299,6 +456,11 @@ class Project:
             if isinstance(mt.value, ast.Constant):
                 site["max_tokens"] = mt.value.value
                 site["max_tokens_span"] = self._span(mt.value)
+        elif "max_tokens" in allkw:
+            v = self._const(module, allkw["max_tokens"])
+            if isinstance(v, int):
+                site["max_tokens"] = v
+                site["max_tokens_line"] = allkw["max_tokens"].lineno
         if kwarg(call, "prompt_cache_key") or "cache_control" in module.segment(call):
             site["cache_marked"] = True
 
@@ -382,26 +544,58 @@ class Project:
                     "summary": "Prune couldn't follow the answer, so it is treated as free text."}
 
         tainted = {result_var}
+        def line_of(n):
+            return n.iter.lineno if isinstance(n, ast.comprehension) else n.lineno
+
         assigns = sorted(
-            (n for n in ast.walk(fn) if isinstance(n, (ast.Assign, ast.AugAssign, ast.AnnAssign)) and n.lineno > call.end_lineno),
-            key=lambda n: n.lineno,
+            (n for n in ast.walk(fn) if isinstance(n, (ast.Assign, ast.AugAssign, ast.AnnAssign, ast.For, ast.comprehension))
+             and line_of(n) >= call.lineno),
+            key=line_of,
         )
-        for a in assigns:
-            if a.value is not None and names_in(a.value) & tainted:
-                targets = a.targets if isinstance(a, ast.Assign) else [a.target]
+        for _ in range(2):  # loops can feed assignments that appear earlier in the file
+            for a in assigns:
+                src = a.iter if isinstance(a, (ast.For, ast.comprehension)) else a.value
+                if src is None or not (names_in(src) & tainted):
+                    continue
+                if isinstance(a, (ast.For, ast.comprehension)):
+                    targets = [a.target]
+                else:
+                    targets = a.targets if isinstance(a, ast.Assign) else [a.target]
                 for t in targets:
-                    if isinstance(t, ast.Name):
-                        if t.id not in tainted:
-                            seg = module.segment(a.value)
+                    for nm in ([t] if isinstance(t, ast.Name) else [x for x in ast.walk(t) if isinstance(x, ast.Name)]):
+                        if nm.id not in tainted:
+                            seg = module.segment(src)
                             if re.search(r"\.(content|text|output_text)\b|\[.content.\]", seg):
-                                path.append({"line": a.lineno, "code": line_text(a.lineno), "note": f"answer text read into `{t.id}`"})
-                        tainted.add(t.id)
+                                path.append({"line": src.lineno, "code": line_text(src.lineno), "note": f"answer text read into `{nm.id}`"})
+                        tainted.add(nm.id)
+
+        def loop_values(name):
+            """Values of a loop variable that walks a constant list: `for c in CATEGORIES`."""
+            for n in ast.walk(fn):
+                if isinstance(n, (ast.For, ast.comprehension)) and isinstance(n.target, ast.Name) and n.target.id == name:
+                    v = self._const(module, n.iter)
+                    if v is None:
+                        v = self.resolve_set(module, n.iter)
+                    if isinstance(v, (list, tuple)) and all(isinstance(x, str) for x in v):
+                        return list(v)
+            return None
 
         labels, eq_consts, number, structured, display, returns = [], [], False, False, None, []
         for node in ast.walk(fn):
             if getattr(node, "lineno", 0) <= call.end_lineno:
                 continue
-            if isinstance(node, ast.Compare) and names_in(node.left) & tainted:
+            if (isinstance(node, ast.Compare) and len(node.ops) == 1 and isinstance(node.ops[0], (ast.In, ast.NotIn))
+                    and names_in(node.comparators[0]) & tainted and not (names_in(node.left) & tainted)):
+                # `"YES" in answer` or `label in answer` where label walks a constant list
+                if isinstance(node.left, ast.Constant) and isinstance(node.left.value, str):
+                    eq_consts.append(node.left.value)
+                elif isinstance(node.left, ast.Name):
+                    vals = loop_values(node.left.id)
+                    if vals and len(vals) >= 2 and not labels:
+                        labels = vals
+                        path.append({"line": node.lineno, "code": line_text(node.lineno),
+                                     "note": f"only checked for {len(vals)} labels: {', '.join(vals[:8])}{'…' if len(vals) > 8 else ''}"})
+            elif isinstance(node, ast.Compare) and names_in(node.left) & tainted:
                 for op, comp in zip(node.ops, node.comparators):
                     if isinstance(op, (ast.In, ast.NotIn)):
                         vals = self.resolve_set(module, comp)
@@ -418,6 +612,12 @@ class Project:
                     path.append({"line": node.lineno, "code": line_text(node.lineno), "note": "parsed as a number"})
                 if ch[-2:] == ["json", "loads"] or ch[-1:] == ["model_validate_json"]:
                     structured = True
+            elif (isinstance(node, ast.Call) and len(node.args) >= 2 and names_in(node.args[1]) & tainted
+                  and (attr_chain(node.func) or [""])[-2:] in (["re", "search"], ["re", "match"], ["re", "findall"])):
+                pat = node.args[0].value if isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str) else ""
+                if "\\d" in pat:
+                    number = True
+                    path.append({"line": node.lineno, "code": line_text(node.lineno), "note": "only a number is read out of it"})
             elif isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Slice) and names_in(node.value) & tainted:
                 up = node.slice.upper
                 if node.slice.lower is None and isinstance(up, ast.Constant) and isinstance(up.value, int):
@@ -431,8 +631,9 @@ class Project:
             summary = f"The code only checks whether the answer is one of {len(labels)} words ({', '.join(labels)})."
         elif number:
             kind, summary = "number", "The answer is only used as a number."
-        elif eq_consts and {c.lower() for c in eq_consts} <= {"yes", "no", "true", "false"}:
-            kind, summary = "boolean", "The answer is only compared to yes/no."
+        elif eq_consts and {c.lower() for c in eq_consts} <= {"yes", "no", "true", "false", "ok"}:
+            kind, summary = "boolean", f"The code only checks whether the answer contains {' or '.join(sorted(set(eq_consts)))}."
+            path.append({"line": call.lineno, "code": line_text(call.lineno), "note": "only a yes/no is read"})
         elif structured:
             kind, summary = "structured", "The answer is parsed as JSON."
         else:

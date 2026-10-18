@@ -29,7 +29,8 @@ SANDBOX = LocalSandbox()
 PROJECTS = {}
 JOBS = {}
 MAX_PROJECTS = 12
-DEFAULT_REPO_CALLS = 10000
+DEFAULT_REPO_CALLS = 1000  # times each API route runs a month, when there's no usage data
+JOB_RUNS = 30  # a scheduled job (a script's main) runs about once a day
 _lock = threading.Lock()
 
 NO_RUN_REASON = ("Prune never runs code it downloads, so tests aren't run for linked repos. "
@@ -74,6 +75,8 @@ class ProjectState:
         self.config = budget.load_config(self.root)
         self.default_calls = default_calls
         self.traffic = {}
+        self.entry_runs = {}
+        self.entries = []
         self.overrides = {}
         self.options = {}
         self.tests = {}
@@ -96,6 +99,7 @@ class ProjectState:
     def analyze(self):
         self.project = Project.from_dir(self.root)
         self.sites = self.project.analyze()
+        self._estimate_traffic()
         ctx = self.ctx()
         self.groups = {}
         self.site_costs = []
@@ -103,9 +107,11 @@ class ProjectState:
             prof = rules.baseline_profile(s, self.usage.get(s["id"]), self.usage_source, self.overrides.get(s["id"]),
                                           self.default_calls, self.traffic.get(s["id"]))
             summ = costing.profile_summary(prof)
-            self.site_costs.append({"id": s["id"], "file": s["file"], "function": s["function"], "line": s["line"],
-                                    "model": prof["model"], "price_source": catalog.price_for(prof["model"])[1],
-                                    "calls": prof["calls"], "estimate": prof["estimate"], **summ})
+            if not s.get("wrapper"):  # a wrapper's cost is already counted at each call through it
+                self.site_costs.append({"id": s["id"], "file": s["file"], "function": s["function"], "line": s["line"],
+                                        "model": prof["model"], "price_source": catalog.price_for(prof["model"])[1],
+                                        "calls": prof["calls"] * len(prof.get("fanout") or [1]), "estimate": prof["estimate"],
+                                        "via": s.get("via"), "fanout": s.get("fanout"), "per_run": s.get("per_run"), **summ})
             g = rules.build_group(s, self.project.modules[s["file"]], self.project.modules, ctx)
             if g:
                 self.groups[g["id"]] = g
@@ -114,6 +120,46 @@ class ProjectState:
             "kwh": [round(sum(c["kwh"][i] for c in self.site_costs), 1) for i in (0, 1)],
             "kg_co2e": [round(sum(c["kg_co2e"][i] for c in self.site_costs), 1) for i in (0, 1)],
         }
+
+    def _estimate_traffic(self):
+        """Monthly calls for each AI call when there's no usage data: how often each entry point
+        (an API route or a scheduled job) runs, times the AI calls it makes per run."""
+        g = getattr(self.project, "graph", None)
+        self.entries = []
+        if g is None or self.kind == "sample":
+            return
+        entries = g.entries
+        counted = [e for e in entries if e["kind"] in ("route", "job")] or entries
+        totals = {}
+        for e in entries:
+            runs = self.entry_runs.get(e["key"])
+            if runs is None:
+                runs = JOB_RUNS if e["kind"] == "job" else self.default_calls
+            e2 = {k: v for k, v in e.items() if k != "per_run"}
+            e2.update(runs=runs, calls_per_run=sum(e["per_run"].values()), counted=e in counted,
+                      top=sorted(e["per_run"].items(), key=lambda kv: -kv[1])[:6])
+            self.entries.append(e2)
+            if e in counted:
+                for sid, c in e["per_run"].items():
+                    totals[sid] = totals.get(sid, 0) + runs * c
+        for s in self.sites:
+            if s.get("wrapper"):
+                continue
+            if s["id"] in totals:
+                s["est_calls"] = max(1, round(totals[s["id"]]))
+                s["est_calls_source"] = "how often the routes and jobs that reach it run"
+            else:
+                s["est_calls"] = self.default_calls * max(s.get("per_run") or 1, 1)
+                s["est_calls_source"] = "default; no route or job reaches it"
+        by_wrapper = {}
+        for s in self.sites:
+            if s.get("via_key"):
+                by_wrapper[s["via_key"]] = by_wrapper.get(s["via_key"], 0) + s.get("est_calls", 0)
+        for s in self.sites:
+            if s.get("wrapper"):
+                s["est_calls"] = max(1, by_wrapper.get(f"{s['file']}::{s['function']}", 0))
+                s["est_calls_source"] = "every call through this wrapper"
+        self.entries.sort(key=lambda e: -e["calls_per_run"])
 
     def sources(self):
         return {p: m.src for p, m in self.project.modules.items()}
@@ -281,8 +327,10 @@ class ProjectState:
                 **{k: v for k, v in g.items() if k not in ("site", "ops_by_file", "advice_ops_by_file", "findings")},
                 "advice_diffs": self.advice_diffs(g),
                 "findings": [{k: v for k, v in f.items() if k != "ops"} for f in g["findings"]],
-                "site": {k: site[k] for k in ("line", "end_line", "function_line", "function_end", "model", "max_tokens",
-                                              "provider", "api", "answer", "user_var", "timer", "batchable")},
+                "site": {**{k: site[k] for k in ("line", "end_line", "function_line", "function_end", "model", "max_tokens",
+                                                 "provider", "api", "answer", "user_var", "timer", "batchable")},
+                         **{k: site.get(k) for k in ("via", "via_file", "via_line", "fanout", "per_run", "loops", "temperature",
+                                                     "reasoning_effort", "thinking_budget", "prompt_tokens", "wrapper", "callers")}},
                 "code": "\n".join(module.lines[site["function_line"] - 1: site["function_end"]]),
                 "code_start": site["function_line"],
                 "price_source": catalog.price_for(g["before"]["model"])[1],
@@ -311,6 +359,7 @@ class ProjectState:
             "empty_reason": empty,
             "groups": groups,
             "sites": site_costs,
+            "entries": self.entries,
             "totals": self.totals,
             "initial": self.initial or self.totals,
             "open_savings": round(open_savings, 2),
@@ -425,17 +474,20 @@ class ProjectState:
         self.energy_steps.append({"label": g["function"], "kwh": self.totals["kwh"]})
         return record
 
-    def set_traffic(self, site_id, calls):
+    def set_traffic(self, site_id, calls, entry=None):
         calls = int(calls)
         if not 1 <= calls <= 1_000_000_000:
             raise KeyError("Calls per month must be between 1 and 1,000,000,000")
-        if site_id:
+        if entry:
+            self.entry_runs[entry] = calls
+        elif site_id:
             if not any(s["id"] == site_id for s in self.sites):
                 raise KeyError("Unknown AI call")
             self.traffic[site_id] = calls
         else:
             self.default_calls = calls
             self.traffic.clear()
+            self.entry_runs.clear()
         initial_before = self.initial
         self.analyze()
         if not self.accepted:  # nothing shipped yet: the "before" picture moves with the estimate

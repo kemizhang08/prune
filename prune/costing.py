@@ -26,6 +26,8 @@ def make_profile(model, calls, input_tokens, output_tokens, cached_tokens=0, est
 
 def _parts(p):
     """Split a profile into (model, calls) parts, honouring a guard split."""
+    if p.get("fanout"):  # the same request sent to several models
+        return [(m, p["calls"]) for m in p["fanout"]]
     if p.get("guard_model") and p.get("guard_share"):
         g = p["guard_share"]
         return [(p["model"], p["calls"] * (1 - g)), (p["guard_model"], p["calls"] * g)]

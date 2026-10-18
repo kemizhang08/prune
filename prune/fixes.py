@@ -27,6 +27,20 @@ def indent_of(line_text):
     return line_text[: len(line_text) - len(line_text.lstrip())]
 
 
+def add_kwarg(call_span, lines, name, value):
+    """Add `name=value` to a call: inline for one-line calls, as its own line otherwise."""
+    end_line, end_col = call_span["end_line"], call_span["end_col"]
+    closing = lines[end_line - 1]
+    if call_span["line"] == end_line:
+        col = end_col - 1  # just before ")"
+        return {"type": "span", "line": end_line, "col": col, "end_col": col, "text": f", {name}={value}"}
+    if closing.strip().startswith(")"):
+        prev = lines[end_line - 2]
+        return insert_before(end_line, [f"{indent_of(prev)}{name}={value},"])
+    col = end_col - 1
+    return {"type": "span", "line": end_line, "col": col, "end_col": col, "text": f", {name}={value}"}
+
+
 def ensure_import(module, stmt):
     """An edit adding `stmt` (e.g. 'import re') unless the module already has it."""
     if any(l.strip() == stmt for l in module.lines):
