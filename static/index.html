@@ -4,48 +4,51 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Prune</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%230b0910'/><path d='M16 26V14' stroke='%23c4b5fd' stroke-width='2.4' stroke-linecap='round'/><path d='M16 15c0-6 4-9 9-9 0 6-4 9-9 9zM16 18c0-5-3-8-8-8 0 5 3 8 8 8z' fill='%238b5cf6'/></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230a0a0b'/><path d='M16 27V14' stroke='%23f4f2ee' stroke-width='2.4'/><path d='M16 15c0-6 4-9 9-9 0 6-4 9-9 9z' fill='%23ff6b2c'/><path d='M16 18c0-5-3-8-8-8 0 5 3 8 8 8z' fill='%238b5cf6'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
       <linearGradient id="gPurple" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c4b5fd"/><stop offset="1" stop-color="#6d28d9"/></linearGradient>
-      <linearGradient id="gFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8b5cf6" stop-opacity=".55"/><stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/></linearGradient>
-      <radialGradient id="gGlow"><stop offset="0" stop-color="#a78bfa" stop-opacity=".55"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></radialGradient>
-      <radialGradient id="gOrb" cx=".35" cy=".3"><stop offset="0" stop-color="#f5f3ff"/><stop offset=".45" stop-color="#a78bfa"/><stop offset="1" stop-color="#3b1a78"/></radialGradient>
+      <linearGradient id="gOrange" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb07a"/><stop offset="1" stop-color="#ff5a1f"/></linearGradient>
+      <radialGradient id="gGlow"><stop offset="0" stop-color="#a78bfa" stop-opacity=".45"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></radialGradient>
+      <radialGradient id="gGlowO"><stop offset="0" stop-color="#ff6b2c" stop-opacity=".35"/><stop offset="1" stop-color="#ff6b2c" stop-opacity="0"/></radialGradient>
+      <pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="6" fill="#ff6b2c"/></pattern>
     </defs>
   </svg>
 
   <header class="top">
-    <a class="brand" href="#home" data-tab="home">
-      <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M16 27V14" stroke="#c4b5fd" stroke-width="2.4" stroke-linecap="round"/><path d="M16 15c0-6 4-9 9-9 0 6-4 9-9 9zM16 18c0-5-3-8-8-8 0 5 3 8 8 8z" fill="url(#gPurple)"/></svg>
+    <a class="brand" href="#find" data-tab="find">
+      <svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true"><path d="M16 28V14" stroke="#f4f2ee" stroke-width="2.2"/><path d="M16 15c0-6 4-9 9-9 0 6-4 9-9 9z" fill="#ff6b2c"/><path d="M16 18c0-5-3-8-8-8 0 5 3 8 8 8z" fill="#8b5cf6"/></svg>
       <span>Prune</span>
     </a>
-    <nav class="tabs" id="tabs" aria-label="Sections">
-      <button data-tab="home" class="active"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Home</span></button>
-      <button data-tab="fixes"><svg viewBox="0 0 24 24"><path d="M6 20c0-7 4-12 12-14-1 8-6 12-12 14zM6 20l6-6"/></svg><span>Fixes</span><i class="badge" id="fixCount"></i></button>
-      <button data-tab="check"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg><span>Check code</span></button>
-      <button data-tab="limits"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 12l4-3"/></svg><span>Limits</span></button>
-      <button data-tab="learned"><svg viewBox="0 0 24 24"><path d="M5 5h10l4 4v10H5z"/><path d="M9 12h6M9 16h4"/></svg><span>Learned</span></button>
+    <nav class="loop" id="tabs" aria-label="Steps">
+      <button data-tab="find"><b>1</b>Find<i class="badge" id="fixCount"></i></button>
+      <span class="arrow" aria-hidden="true"></span>
+      <button data-tab="prove"><b>2</b>Prove</button>
+      <span class="arrow" aria-hidden="true"></span>
+      <button data-tab="ship"><b>3</b>Ship</button>
+      <span class="arrow" aria-hidden="true"></span>
+      <button data-tab="remember"><b>4</b>Remember</button>
+      <span class="sep" aria-hidden="true"></span>
+      <button data-tab="guard" class="guard-link">Guard</button>
     </nav>
-    <div class="project">
-      <select id="projectPick" aria-label="Project">
-        <option value="stepup">StepUp Shoes</option>
-        <option value="bank">Northwind Bank</option>
-        <option value="paste">Your own code…</option>
-      </select>
-    </div>
+    <select id="projectPick" aria-label="Project">
+      <option value="stepup">StepUp Shoes</option>
+      <option value="bank">Northwind Bank</option>
+      <option value="paste">Your own code…</option>
+    </select>
   </header>
 
   <main>
-    <section class="view active" id="view-home"></section>
-    <section class="view" id="view-fixes"></section>
-    <section class="view" id="view-check"></section>
-    <section class="view" id="view-limits"></section>
-    <section class="view" id="view-learned"></section>
+    <section class="view" id="view-find"></section>
+    <section class="view" id="view-prove"></section>
+    <section class="view" id="view-ship"></section>
+    <section class="view" id="view-remember"></section>
+    <section class="view" id="view-guard"></section>
   </main>
 
   <dialog id="pasteDialog">
@@ -55,11 +58,11 @@
       <div class="row">
         <label>Times it runs per month <input id="pasteCalls" type="number" min="1" value="25000"></label>
         <input id="pasteName" type="hidden" value="app.py">
-        <button type="button" class="ghost" id="pasteExample">Use an example</button>
+        <button type="button" class="link" id="pasteExample">Use an example</button>
       </div>
       <div class="row end">
-        <button value="cancel" class="ghost">Cancel</button>
-        <button id="pasteGo" value="go" class="primary">Look for savings</button>
+        <button value="cancel" class="link">Cancel</button>
+        <button id="pasteGo" value="go" class="primary">Find savings</button>
       </div>
     </form>
   </dialog>
