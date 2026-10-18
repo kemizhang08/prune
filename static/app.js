@@ -76,9 +76,10 @@ function tag(f, g) {
 
 // ---------- state ----------
 
-const TABS = ["find", "prove", "ship", "remember", "budgets"];
+const TABS = ["find", "prove", "ship", "remember", "energy", "budgets"];
 const state = { project: null, initialSites: {}, selected: null, busy: null, ledger: [], tab: "find", receipts: {}, lastSample: "stepup",
-  incomingCheck: null, limits: {}, addedLimits: {}, threshold: null, editing: null, decision: null };
+  incomingCheck: null, limits: {}, addedLimits: {}, threshold: null, editing: null, decision: null,
+  catalog: null, energySteps: [], replayRuns: {} };
 
 async function api(path, body) {
   const res = await fetch(path, body === undefined ? {} : {
@@ -110,7 +111,8 @@ function setProject(p, fresh) {
   if (fresh) {
     state.initialSites = Object.fromEntries(p.sites.map((s) => [s.id, s]));
     state.receipts = {};
-    Object.assign(state, { incomingCheck: null, limits: {}, addedLimits: {}, threshold: null, editing: null, decision: null });
+    Object.assign(state, { incomingCheck: null, limits: {}, addedLimits: {}, threshold: null, editing: null, decision: null, replayRuns: {} });
+    state.energySteps = [{ label: "Before Prune", kwh: p.initial.kwh }];
     state.selected = p.groups.find((g) => g.has_edits)?.id || p.groups[0]?.id || null;
   }
 }
@@ -286,7 +288,7 @@ function renderFind() {
   const p = state.project;
   if (!p) { el.innerHTML = ""; return; }
   const f = figures();
-  const km = Math.round(mid(f.kg) / 0.17);
+  const km = Math.round(mid(f.kg) / EQUIV.kgPerKm);
   const top = f.ready[0];
   el.innerHTML = `
     <div class="wrap hero">
@@ -474,6 +476,139 @@ function renderRemember() {
       : `<div class="empty">${sproutArt()}<p>Nothing yet. Approve an answer check in Prove and the pattern lands here.</p></div>`}</div>`;
 }
 
+// ---------- ENERGY ----------
+
+// Everyday comparisons, all estimates on the middle of each range.
+const EQUIV = {
+  kwhPerPhoneCharge: 0.015, // a full smartphone charge, ~12–19 Wh
+  kwhPerHomeDay: 29, // average US home, EIA: ~10,800 kWh a year
+  kgPerKm: 0.25, // average passenger car, EPA: ~400 g CO₂ a mile
+};
+
+function energyBubbles(kwh) {
+  const count = Math.max(10, Math.min(70, Math.round(mid(kwh) / 1.6)));
+  const r = rand(23);
+  let s = "";
+  for (let i = 0; i < count; i++) {
+    const x = 20 + r() * 1160, y = 300 + r() * 80, rad = 3 + r() * 9;
+    s += `<circle class="bubble slow" style="animation-delay:${(r() * 9).toFixed(2)}s;animation-duration:${(8 + r() * 6).toFixed(1)}s" cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${rad.toFixed(1)}" fill="${i % 9 === 0 ? "rgba(79,174,138,.12)" : "none"}" stroke="${i % 9 === 0 ? "#4fae8a" : "#c4b5fd"}" stroke-width="1.3"/>`;
+  }
+  return `<svg class="field" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <ellipse cx="600" cy="430" rx="700" ry="120" fill="url(#gGlow)"/>
+    ${s}
+    <path d="M0 340 C 200 300, 380 360, 600 326 S 960 290, 1200 330 V420 H0z" fill="#241a40"/>
+    <path d="M0 370 C 260 344, 440 392, 700 366 S 1040 350, 1200 372 V420 H0z" fill="#4c1d95" opacity=".9"/>
+    <path d="M0 396 C 300 384, 560 410, 820 394 S 1100 388, 1200 398 V420 H0z" fill="#8b5cf6" opacity=".75"/>
+  </svg>`;
+}
+
+function glyphRow(kind, n) {
+  const shown = Math.min(n, 40);
+  const g = {
+    phone: `<svg viewBox="0 0 12 20"><rect x="1" y="1" width="10" height="18" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="9" width="6" height="8" fill="currentColor"/></svg>`,
+    home: `<svg viewBox="0 0 20 20"><path d="M2 10 L10 3 L18 10 V18 H2z" fill="none" stroke="currentColor" stroke-width="1.4"/><rect x="8" y="12" width="4" height="6" fill="currentColor"/></svg>`,
+  }[kind];
+  return `<div class="glyphs ${kind}">${Array.from({ length: shown }, (_, i) => `<i style="animation-delay:${i * 25}ms">${g}</i>`).join("")}${n > shown ? `<span>+${int(n - shown)}</span>` : ""}</div>`;
+}
+
+function reviewWh() {
+  // Prune's own footprint: the answer re-checks it ran. Analysis reads code without AI.
+  const per = state.catalog?.energy_per_1k;
+  let lo = 0, hi = 0;
+  for (const r of Object.values(state.replayRuns)) {
+    const size = state.catalog?.models?.[r.model]?.size || "small";
+    const e = per ? per[size] : [0.00002, 0.00006];
+    const k = (r.calls * r.tokens) / 1000;
+    lo += k * e[0] * 1000;
+    hi += k * e[1] * 1000;
+  }
+  return [lo, hi];
+}
+
+function renderEnergy() {
+  const el = $("#view-energy");
+  const p = state.project;
+  if (!p) { el.innerHTML = ""; return; }
+  const f = figures();
+  const kwh = f.kwh, kg = f.kg;
+  const m = mid(kwh);
+  const phones = Math.round(m / EQUIV.kwhPerPhoneCharge);
+  const homeDays = m / EQUIV.kwhPerHomeDay;
+  const km = Math.round(mid(kg) / EQUIV.kgPerKm);
+
+  // Over time: one step per shipped fix, then what's left if every ready fix ships.
+  const steps = state.energySteps.slice();
+  const readyKwh = [0, 1].map((i) => f.ready.reduce((a, g) => a + g.summary.saved_kwh[i], 0));
+  const projected = [Math.max(0, p.totals.kwh[0] - readyKwh[0]), Math.max(0, p.totals.kwh[1] - readyKwh[1])];
+  const cols = [...steps.map((s, i) => ({ ...s, now: i === steps.length - 1 })), ...(f.ready.length ? [{ label: "If every fix ships", kwh: projected, projected: true }] : [])];
+  const top = Math.max(...cols.map((c) => c.kwh[1]), 1);
+
+  // Which fixes save the most energy.
+  const fixes = [
+    ...p.accepted.map((a) => ({ name: friendly(a.function), kwh: a.saved_kwh, shipped: true })),
+    ...f.ready.map((g) => ({ name: friendly(g.function), kwh: g.summary.saved_kwh, shipped: false })),
+  ].sort((a, b) => mid(b.kwh) - mid(a.kwh));
+  const fmax = Math.max(...fixes.map((x) => x.kwh[1]), 1);
+
+  const wh = reviewWh();
+  const net = [Math.max(0, kwh[0] - wh[1] / 1000), Math.max(0, kwh[1] - wh[0] / 1000)];
+  const share = kwh[0] > 0 ? (mid(wh) / 1000) / mid(kwh) : 0;
+  const per = state.catalog?.energy_per_1k || { large: [0.00022, 0.00061], medium: [0.00008, 0.00022], small: [0.00002, 0.00006] };
+  const grid = state.catalog?.grid_kg_per_kwh || [0.25, 0.45];
+  const whNum = (x) => (x >= 10 ? Math.round(x).toLocaleString() : x.toFixed(2));
+  const whRange = (r) => `${whNum(r[0] * 1000)}–${whNum(r[1] * 1000)} Wh`;
+
+  el.innerHTML = `
+    <div class="energy-hero">
+      ${energyBubbles(kwh)}
+      <div class="hero-tree">${treeArt()}</div>
+      <div class="wrap">
+        <div class="eyebrow">${f.done ? "Energy saved" : "Energy Prune can save"} · ${esc(p.name)}</div>
+        <div class="num">${rng(kwh)}<span class="unit">kWh</span></div>
+        <div class="per">every month, and ${rng(kg)} kg of CO₂ that never reaches the air</div>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="section"><div class="section-head"><h2>What that's like</h2><span class="legend">Estimates, using the middle of each range</span></div>
+        <div class="equiv">
+          <div><div class="v">${int(phones)}</div><div class="k">phone charges a month</div>${glyphRow("phone", Math.round(phones / 250))}<div class="g-note">each = 250 charges</div></div>
+          <div><div class="v">${homeDays >= 10 ? int(homeDays) : homeDays.toFixed(1)}</div><div class="k">days of power for an average home</div>${glyphRow("home", Math.max(1, Math.round(homeDays)))}<div class="g-note">each = one home for a day</div></div>
+          <div><div class="v">${int(km)} km</div><div class="k">of driving avoided, in carbon terms</div>
+            <div class="road"><i style="width:${Math.min(100, (km / 400) * 100)}%"></i></div><div class="g-note">${int(km * 0.621)} miles</div></div>
+        </div></div>
+
+      <div class="section"><div class="section-head"><h2>Energy used each month</h2>
+          <span class="legend"><span><i class="k"></i>Likely range</span>${f.ready.length ? `<span><i class="pg"></i>After the fixes still waiting</span>` : ""}</span></div>
+        <div class="steps">${cols.map((c) => `<div class="stepcol ${c.projected ? "proj" : ""} ${c.now ? "now" : ""}">
+            <div class="val">${rng(c.kwh)}<small> kWh</small></div>
+            <div class="track"><div class="hi" style="height:${(c.kwh[1] / top) * 100}%"></div><div class="lo" style="height:${(c.kwh[0] / top) * 100}%"></div></div></div>`).join("")}</div>
+        <div class="steplabs">${cols.map((c) => `<span class="${c.projected ? "proj" : ""}">${esc(c.label)}</span>`).join("")}</div>
+        <p class="muted note">${p.accepted.length ? `Each column is one fix shipped.` : `Ship a fix and a new column appears here.`} The tall faint part is the high end of the estimate, the solid part the low end.</p></div>
+
+      <div class="section"><div class="section-head"><h2>Biggest energy savers</h2><span class="legend">kWh a month</span></div>
+        ${fixes.length ? `<div class="savers">${fixes.map((x, i) => `<div class="saver"><span class="ix">${pad2(i + 1)}</span><span class="n">${esc(x.name)}</span>
+            <div class="rbar"><i style="left:${(x.kwh[0] / fmax) * 100}%;width:${((x.kwh[1] - x.kwh[0]) / fmax) * 100}%"></i><b style="width:${(x.kwh[0] / fmax) * 100}%"></b></div>
+            <span class="v">${rng(x.kwh)}</span><span class="tag ${x.shipped ? "shipped" : "same"}">${x.shipped ? "Shipped" : "Ready"}</span></div>`).join("")}</div>`
+          : `<p class="muted">No energy fixes in this project yet.</p>`}</div>
+
+      <div class="section net">
+        <div><div class="eyebrow">Net impact</div>
+          <div class="big-line">Saving ${rng(kwh)} kWh a month cost <em>${whRange([wh[0] / 1000, wh[1] / 1000])}</em> of Prune's own energy.</div>
+          <p class="muted">${mid(wh) > 0 ? `That's what re-checking past answers on the smaller model used, about ${share < 0.001 ? "less than 0.1%" : (share * 100).toFixed(1) + "%"} of one month's savings. Reading your code uses no AI.` : `Reading your code uses no AI, so this review has used almost no energy so far. Answer checks add a little, and they show up here.`}</p></div>
+        <div class="netbox"><div class="ln"><span>Saved a month</span><span>${rng(kwh)} kWh</span></div>
+          <div class="ln"><span>Prune's own use</span><span>−${whRange([wh[0] / 1000, wh[1] / 1000])}</span></div>
+          <div class="ln total"><span>Net, first month</span><span class="green">${rng(net)} kWh</span></div></div>
+      </div>
+
+      <div class="section method"><div class="section-head"><h2>How we estimate this</h2></div>
+        <div class="formula"><span>Words processed<small>tokens, from your usage</small></span><b>×</b><span>Energy per 1,000 tokens<small>a low–high range by model size</small></span><b>×</b><span>Grid carbon<small>${grid[0]}–${grid[1]} kg CO₂ per kWh</small></span></div>
+        <div class="ranges">${Object.entries(per).map(([k, v]) => `<div><span>${k === "large" ? "Large models" : k === "medium" ? "Mid-size models" : "Small models"}</span><span>${whRange(v)} per 1,000 tokens</span></div>`).join("")}</div>
+        <p class="muted">AI companies don't publish energy use per model, so Prune always shows a range, never one exact number. Dollar figures come straight from your bill and are exact. Reused (cached) instructions count at a tenth, since they skip most of the work. Sources:</p>
+        <ul class="sources">${(state.catalog?.sources || []).map((s) => `<li>${esc(s)}</li>`).join("")}<li>Comparisons: EIA average US home use; EPA average car emissions per mile.</li></ul></div>
+    </div>`;
+}
+
 // ---------- BUDGETS ----------
 
 const FEATURE_NAMES = {
@@ -595,7 +730,7 @@ function render() {
   $("#fixCount").textContent = p ? p.groups.filter((g) => g.has_edits).length || "" : "";
   document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === state.tab));
   document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + state.tab));
-  ({ find: renderFind, prove: renderProve, ship: renderShip, remember: renderRemember, budgets: renderBudgets })[state.tab]();
+  ({ find: renderFind, prove: renderProve, ship: renderShip, remember: renderRemember, energy: renderEnergy, budgets: renderBudgets })[state.tab]();
 }
 
 function go(tab) {
@@ -628,7 +763,10 @@ document.addEventListener("click", async (e) => {
   const p = state.project, gid = state.selected, act = btn.dataset.act;
   if (act === "tests") await run("tests", async () => setProject((await api("/api/tests", { project: p.id, group: gid })).project));
   if (act === "replay") await run("replay", async () => {
-    setProject((await api("/api/replay", { project: p.id, group: gid })).project);
+    const res = await api("/api/replay", { project: p.id, group: gid });
+    const g0 = p.groups.find((x) => x.id === gid);
+    state.replayRuns[gid] = { calls: res.result.total, model: res.result.new_model, tokens: g0.before.input_tokens + 5 };
+    setProject(res.project);
     await retestIfChanged(gid);
   });
   if (act === "decide") await run("decide", async () => {
@@ -644,6 +782,7 @@ document.addEventListener("click", async (e) => {
     const r = await api("/api/accept", { project: p.id, group: gid });
     setProject(r.project);
     state.receipts[r.accepted.id] = receipt;
+    state.energySteps.push({ label: friendly(r.accepted.function), kwh: state.project.totals.kwh });
     state.selected = "shipped:" + r.accepted.id;
     toast(`Shipped. Saving ${about(r.accepted.saved_usd)} a month`);
   });
@@ -732,4 +871,5 @@ window.addEventListener("hashchange", () => {
   if (TABS.includes(t) && t !== state.tab) { state.tab = t; if (state.project) render(); }
 });
 state.tab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "find";
+api("/api/catalog").then((c) => { state.catalog = c; if (state.tab === "energy" && state.project) renderEnergy(); }).catch(() => {});
 loadSample("stepup");
