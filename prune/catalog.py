@@ -19,7 +19,19 @@ MODELS = {
     "gpt-5-nano": (0.05, 0.005, 0.40, "small", "openai"),
     "o3": (2.00, 0.50, 8.00, "large", "openai"),
     "gpt-4-turbo": (10.00, 10.00, 30.00, "large", "openai"),
+    "gpt-4": (30.00, 30.00, 60.00, "large", "openai"),
+    "gpt-3.5-turbo": (0.50, 0.50, 1.50, "medium", "openai"),
+    "o1": (15.00, 7.50, 60.00, "large", "openai"),
+    "o3-mini": (1.10, 0.55, 4.40, "medium", "openai"),
+    "o4-mini": (1.10, 0.275, 4.40, "medium", "openai"),
     "claude-opus-4-1": (15.00, 1.50, 75.00, "large", "anthropic"),
+    "claude-opus-4": (15.00, 1.50, 75.00, "large", "anthropic"),
+    "claude-sonnet-4": (3.00, 0.30, 15.00, "medium", "anthropic"),
+    "claude-3-7-sonnet": (3.00, 0.30, 15.00, "medium", "anthropic"),
+    "claude-3-5-sonnet": (3.00, 0.30, 15.00, "medium", "anthropic"),
+    "claude-3-5-haiku": (0.80, 0.08, 4.00, "small", "anthropic"),
+    "claude-3-opus": (15.00, 1.50, 75.00, "large", "anthropic"),
+    "claude-3-haiku": (0.25, 0.03, 1.25, "small", "anthropic"),
     "claude-sonnet-4-5": (3.00, 0.30, 15.00, "medium", "anthropic"),
     "claude-3-5-sonnet-latest": (3.00, 0.30, 15.00, "medium", "anthropic"),
     "claude-haiku-4-5": (1.00, 0.10, 5.00, "small", "anthropic"),
@@ -42,6 +54,12 @@ SMALLER = {
     "claude-opus-4-1": "claude-haiku-4-5",
     "claude-sonnet-4-5": "claude-haiku-4-5",
     "claude-3-5-sonnet-latest": "claude-3-5-haiku-latest",
+    "claude-opus-4": "claude-haiku-4-5",
+    "claude-sonnet-4": "claude-haiku-4-5",
+    "claude-3-7-sonnet": "claude-3-5-haiku-latest",
+    "claude-3-5-sonnet": "claude-3-5-haiku-latest",
+    "claude-3-opus": "claude-3-haiku",
+    "gpt-4": "gpt-4o-mini",
     "gemini-2.5-pro": "gemini-2.5-flash",
     "llama-3.1-70b": "llama-3.1-8b",
 }
@@ -72,15 +90,47 @@ ENERGY_SOURCES = [
 ]
 
 
+# Typical prices by size, used only for models missing from the list above.
+FAMILY_PRICES = {
+    "large": (2.50, 1.25, 10.00),
+    "medium": (3.00, 0.30, 15.00),
+    "small": (0.25, 0.025, 1.25),
+}
+SMALL_HINTS = ("mini", "nano", "haiku", "flash", "lite", "small", "8b", "7b", "3b")
+MEDIUM_HINTS = ("sonnet", "70b", "mixtral", "medium")
+
+
 def model_info(name):
     """Return (input, cached, output, size, provider) or None for unknown models."""
     if name in MODELS:
         return MODELS[name]
     # Tolerate dated snapshots like gpt-4o-2024-08-06.
     for key in sorted(MODELS, key=len, reverse=True):
-        if name.startswith(key):
+        if name.startswith(key + "-20"):
             return MODELS[key]
     return None
+
+
+def price_for(name):
+    """(input, cached, output, size, provider) plus where the price came from.
+
+    Known models use list prices. Anything else is priced by size class guessed from
+    its name and labelled as an estimate, so new or self-hosted models still rank.
+    """
+    info = model_info(name or "")
+    if info:
+        return info, "list price"
+    low = (name or "").lower()
+    if not low or low == "unknown":
+        size, source = "medium", "model not set in the code: priced as a mid-size model"
+    elif any(h in low for h in SMALL_HINTS):
+        size, source = "small", "estimated: priced as a small model"
+    elif any(h in low for h in MEDIUM_HINTS):
+        size, source = "medium", "estimated: priced as a mid-size model"
+    else:
+        size, source = "large", "estimated: priced as a large model"
+    provider = "anthropic" if "claude" in low else "google" if "gemini" in low else "openai" if low.startswith(("gpt", "o1", "o3", "o4")) else "unknown"
+    return (*FAMILY_PRICES[size], size, provider), source
 
 
 def smaller_model(name):
@@ -88,6 +138,15 @@ def smaller_model(name):
         if name == key or name.startswith(key + "-20"):
             return SMALLER[key]
     return None
+
+
+# Everyday comparisons, applied to the middle of each range. Estimates.
+EQUIVALENTS = {
+    "kwh_per_phone_charge": 0.015,  # a full smartphone charge, ~12–19 Wh
+    "kwh_per_home_day": 29.0,  # average US home, EIA: ~10,800 kWh a year
+    "kg_co2_per_km": 0.25,  # average passenger car, EPA: ~400 g CO2 a mile
+}
+EQUIVALENT_SOURCES = "Comparisons: EIA average US home use; EPA average car emissions per mile."
 
 
 def as_json():
@@ -99,5 +158,7 @@ def as_json():
         "energy_per_1k": ENERGY_PER_1K,
         "grid_kg_per_kwh": GRID_KG_PER_KWH,
         "cache_hit_rate": CACHE_HIT_RATE,
-        "sources": ENERGY_SOURCES,
+        "cached_token_weight": CACHED_TOKEN_ENERGY_WEIGHT,
+        "equivalents": EQUIVALENTS,
+        "sources": ENERGY_SOURCES + [EQUIVALENT_SOURCES],
     }

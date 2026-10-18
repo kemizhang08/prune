@@ -31,6 +31,7 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .link:hover { color: var(--ink); }
 input, select, textarea { background: transparent; border: 0; border-bottom: 1px solid var(--rule); padding: 10px 0; outline: none; }
 input:focus, textarea:focus { border-color: var(--purple); }
+#projectPick { max-width: 240px; text-overflow: ellipsis; }
 select { appearance: none; border: 1px solid var(--rule); padding: 8px 34px 8px 12px; cursor: pointer; background: var(--bg) linear-gradient(45deg, transparent 50%, var(--lilac) 50%) calc(100% - 16px) 50% / 6px 6px no-repeat; }
 .muted { color: var(--muted); }
 .serif { font-family: var(--serif); font-weight: 400; }
@@ -61,6 +62,29 @@ main { padding-bottom: 120px; }
 .section { padding: 56px 0; border-top: 1px solid var(--rule); }
 .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap; margin-bottom: 28px; }
 .section-head h2 { font-family: var(--serif); font-size: clamp(32px, 4vw, 48px); line-height: 1; }
+
+/* scan a link */
+.scanbar { display: block; padding-top: 22px; padding-bottom: 20px; border-bottom: 1px solid var(--rule); }
+.scanbar label { display: block; margin-bottom: 8px; }
+.scanrow { display: flex; gap: 14px; align-items: stretch; }
+.scanrow input { flex: 1; min-width: 0; font: 16px var(--mono); border: 1px solid var(--rule); padding: 12px 14px; background: var(--bg-2); }
+.scanrow input:focus { border-color: var(--purple); }
+.scanrow .outline { white-space: nowrap; }
+.scanhint { margin-top: 8px; font-size: 13px; color: var(--muted); }
+.scanstate { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; font-size: 13px; color: var(--dim); }
+.scanstate i { width: 22px; height: 1px; background: var(--rule); }
+.scanstate span.now { color: var(--lilac); font-weight: 700; }
+.scanstate span.did { color: var(--ink); }
+.scanstate span.did::before { content: "✓ "; color: var(--green); }
+.scanstate em { font-style: normal; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-left: 6px; }
+.scanstate .err { color: var(--ink); border-left: 2px solid var(--purple); padding-left: 10px; }
+.estimate { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 22px; font-size: 13px; color: var(--muted); max-width: 560px; }
+.estimate .money { display: inline-flex; border-bottom: 1px solid var(--rule); }
+.estimate input { width: 96px; font: 14px var(--mono); color: var(--ink); border: 0; padding: 4px 0; text-align: right; }
+.fix-head + .estimate { margin: -14px 0 26px; }
+pre .file { display: block; color: var(--lilac); font-weight: 600; }
+.limit.nolimit .s small { color: var(--dim); }
+.hero .eyebrow a, .fix-head .eyebrow a, .energy-hero .eyebrow a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
 
 /* FIND hero */
 .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); align-items: end; gap: 32px; padding-top: 56px; }
@@ -361,6 +385,7 @@ dialog::backdrop { background: rgba(0, 0, 0, .75); }
   .saver .tag { grid-column: 3; grid-row: 1; }
   .section.net { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .formula span { font-size: 22px; }
+  .scanrow { flex-direction: column; }
   .desk { display: none; }
   .mob { display: block; }
   .empty { padding: 40px 0; }

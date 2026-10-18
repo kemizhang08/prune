@@ -6,7 +6,7 @@ const usd = (x) => "$" + (Math.abs(x) >= 100 ? Math.round(x).toLocaleString() : 
 const cents = (x) => "$" + Number(x).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const about = (x) => "$" + (x >= 100 ? Math.round(x / 10) * 10 : Math.round(x)).toLocaleString();
 const int = (x) => Math.round(x).toLocaleString();
-const rng = (r) => `${Math.round(r[0])}–${Math.round(r[1])}`;
+const rng = (r) => (r[1] > 0 && r[1] < 10 ? `${r[0].toFixed(1)}–${r[1].toFixed(1)}` : `${Math.round(r[0])}–${Math.round(r[1])}`);
 const mid = (r) => (r[0] + r[1]) / 2;
 const pad2 = (n) => String(n).padStart(2, "0");
 
@@ -24,7 +24,7 @@ const NAMES = {
   chat: "Chat replies",
   product_blurb: "Product page blurbs",
 };
-const friendly = (fn) => NAMES[fn] || fn.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+const friendly = (fn) => NAMES[fn] || fn.replace(/^_+/, "").replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
 
 // What the change is, in a few words.
 function changeName(f) {
@@ -55,31 +55,17 @@ const WHY = {
   agent_unbounded: "The assistant can keep going with no limit on steps.",
 };
 
-function proofOf(f, g) {
-  if (!f.included) return { cls: "advice", text: "Advice only" };
-  if (f.fix_kind === "model_change" || f.fix_kind === "less_context") {
-    if (f.proof === "replay" && g?.status?.replay?.decision !== "accepted") return { cls: "pending", text: "Check pending" };
-    return { cls: "checked", text: "Checked" };
-  }
-  return { cls: "same", text: "Same answer" };
-}
-function tag(f, g) {
-  const p = proofOf(f, g);
-  let extra = "";
-  if (p.cls === "checked") {
-    const rp = g?.status?.replay;
-    if (f.proof === "ledger" && f.ledger) extra = ` · ${int(f.ledger.matched)}/${int(f.ledger.total)}`;
-    else if (rp) extra = ` · ${int(rp.matched)}/${int(rp.total)}`;
-  }
-  return `<span class="tag ${p.cls}">${p.text}${extra}</span>`;
+// The server decides each change's proof badge from what kind of change it is.
+function tag(f) {
+  const b = f.badge || { kind: "advice", label: "Advice only", detail: "" };
+  return `<span class="tag ${b.kind}">${esc(b.label)}${b.detail ? ` · ${esc(b.detail)}` : ""}</span>`;
 }
 
 // ---------- state ----------
 
 const TABS = ["find", "prove", "ship", "remember", "energy", "budgets"];
-const state = { project: null, initialSites: {}, selected: null, busy: null, ledger: [], tab: "find", receipts: {}, lastSample: "stepup",
-  incomingCheck: null, limits: {}, addedLimits: {}, threshold: null, editing: null, decision: null,
-  catalog: null, energySteps: [], replayRuns: {} };
+const state = { project: null, initialSites: {}, selected: null, busy: null, ledger: [], tab: "find", lastSample: "stepup",
+  editing: null, scan: null, repos: {} };
 
 async function api(path, body) {
   const res = await fetch(path, body === undefined ? {} : {
@@ -110,9 +96,7 @@ function setProject(p, fresh) {
   state.project = p;
   if (fresh) {
     state.initialSites = Object.fromEntries(p.sites.map((s) => [s.id, s]));
-    state.receipts = {};
-    Object.assign(state, { incomingCheck: null, limits: {}, addedLimits: {}, threshold: null, editing: null, decision: null, replayRuns: {} });
-    state.energySteps = [{ label: "Before Prune", kwh: p.initial.kwh }];
+    state.editing = null;
     state.selected = p.groups.find((g) => g.has_edits)?.id || p.groups[0]?.id || null;
   }
 }
@@ -122,7 +106,6 @@ async function loadSample(sample) {
   $("#projectPick").value = sample;
   await run("load", async () => setProject(await api("/api/load", { sample }), true));
   refreshLedger();
-  checkIncoming();
 }
 
 async function refreshLedger() {
@@ -147,11 +130,14 @@ function figures() {
   const ready = p.groups.filter((g) => g.has_edits);
   const sum = (k) => [0, 1].map((i) => ready.reduce((a, g) => a + g.summary[k][i], 0));
   const done = savedUsd > 0.5;
+  // Nothing Prune can apply on its own (common for linked repos): show what the suggestions are worth.
+  const adviceOnly = !done && !ready.length && p.groups.some((g) => g.advice_extra_usd > 0.5);
+  const adv = (k) => [0, 1].map((i) => p.groups.reduce((a, g) => a + g.advice_summary[k][i], 0));
   return {
-    done, ready,
-    heroUsd: done ? savedUsd : ready.reduce((a, g) => a + g.summary.saved_usd, 0),
-    kwh: done ? sub(p.initial.kwh, p.totals.kwh) : sum("saved_kwh"),
-    kg: done ? sub(p.initial.kg_co2e, p.totals.kg_co2e) : sum("saved_kg_co2e"),
+    done, ready, adviceOnly,
+    heroUsd: done ? savedUsd : adviceOnly ? p.groups.reduce((a, g) => a + g.advice_extra_usd, 0) : ready.reduce((a, g) => a + g.summary.saved_usd, 0),
+    kwh: done ? sub(p.initial.kwh, p.totals.kwh) : adviceOnly ? adv("saved_kwh") : sum("saved_kwh"),
+    kg: done ? sub(p.initial.kg_co2e, p.totals.kg_co2e) : adviceOnly ? adv("saved_kg_co2e") : sum("saved_kg_co2e"),
   };
 }
 
@@ -274,7 +260,7 @@ function rowsHtml() {
       <span class="ix">${pad2(++i)}</span>
       <span class="nm">${esc(friendly(g.function))}</span>
       <span class="ch">${changes.slice(0, 3).map((f) => `<div>${esc(changeName(f))} ${tag(f, g)}</div>`).join("")}${changes.length > 3 ? `<div>+${changes.length - 3} more</div>` : ""}</span>
-      <span class="usd">${quiet ? "—" : about(g.summary.saved_usd)}</span>
+      <span class="usd">${quiet ? (g.advice_extra_usd > 0.5 ? `<small>~</small>${about(g.advice_extra_usd)}` : "—") : about(g.summary.saved_usd)}</span>
       <span class="go">${quiet ? "Read" : "Fix it"}</span></button>`;
   };
   const shipped = p.accepted.map((a) => `<button class="row shipped" data-open="shipped:${esc(a.id)}"><span class="ix">${pad2(++i)}</span>
@@ -283,24 +269,71 @@ function rowsHtml() {
   return `<div class="rows">${open.map((g) => row(g)).join("")}${tips.map((g) => row(g, true)).join("")}${shipped.join("")}</div>`;
 }
 
+const SCAN_STEPS = [["fetching", "Fetching"], ["scanning", "Reading the code"], ["done", "Done"]];
+
+function scanBar() {
+  const sc = state.scan;
+  const busy = sc && (sc.state === "fetching" || sc.state === "scanning");
+  const idx = sc ? SCAN_STEPS.findIndex(([k]) => k === sc.state) : -1;
+  return `<form class="scanbar wrap" id="scanForm" autocomplete="off">
+      <label for="repoUrl" class="eyebrow">Scan a GitHub repo</label>
+      <div class="scanrow"><input id="repoUrl" type="url" inputmode="url" spellcheck="false" placeholder="https://github.com/owner/repo"
+          value="${esc(sc?.input || "")}" ${busy ? "disabled" : ""}>
+        <button class="outline" type="submit" ${busy ? "disabled" : ""}>${busy ? '<span class="spin"></span>Scanning' : "Scan"}</button></div>
+      ${sc ? `<div class="scanstate ${sc.state}">
+          ${sc.state === "error" ? `<span class="err">${esc(sc.error)}</span>` :
+            SCAN_STEPS.map(([k, label], i) => `<span class="${i < idx || sc.state === "done" ? "did" : i === idx ? "now" : ""}">${label}</span>`).join('<i></i>')}
+          ${sc.state !== "error" && sc.message ? `<em>${esc(sc.message)}</em>` : ""}</div>`
+        : `<div class="scanhint">Public repos or single .py files. Prune only reads the code. It never runs it.</div>`}
+    </form>`;
+}
+
+function estimateNote(p) {
+  if (p.kind === "sample") return "";
+  return `<form class="estimate" id="trafficForm">
+      <span>No usage data, so every figure is an estimate. Prune assumed</span>
+      <span class="money"><input id="defaultCalls" type="number" min="1" value="${p.default_calls}"></span>
+      <span>runs a month for each AI call.</span>
+      <button class="link" type="submit">Update</button></form>`;
+}
+
+function sourceLine(p) {
+  if (p.kind !== "repo") return esc(p.name);
+  const src = p.source;
+  return `<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.label)}</a> · ${int(src.files)} Python file${src.files === 1 ? "" : "s"} read`;
+}
+
 function renderFind() {
   const el = $("#view-find");
   const p = state.project;
-  if (!p) { el.innerHTML = ""; return; }
+  if (!p) { el.innerHTML = scanBar(); return; }
+  if (p.empty_reason) {
+    el.innerHTML = `${scanBar()}<div class="wrap"><div class="empty">${sproutArt()}<div>
+        <div class="eyebrow">${sourceLine(p)}</div>
+        <h2 class="serif" style="font-size:clamp(34px,4vw,52px);line-height:1;margin:10px 0 14px">Nothing to prune here</h2>
+        <p>${esc(p.empty_reason)}</p>
+        ${p.parse_error_count ? `<p class="muted">${int(p.parse_error_count)} file${p.parse_error_count === 1 ? "" : "s"} couldn't be read as Python 3.</p>` : ""}
+        <button class="outline" data-sample-load="stepup">See the StepUp example</button></div></div></div>`;
+    return;
+  }
   const f = figures();
-  const km = Math.round(mid(f.kg) / EQUIV.kgPerKm);
+  const km = p.energy.equivalents.km_driving;
   const top = f.ready[0];
   el.innerHTML = `
+    ${scanBar()}
     <div class="wrap hero">
       <div>
-        <div class="eyebrow">${esc(p.name)} · ${p.sites.length} AI call${p.sites.length === 1 ? "" : "s"} read</div>
+        <div class="eyebrow">${sourceLine(p)} · ${p.sites.length} AI call${p.sites.length === 1 ? "" : "s"} found</div>
         <div class="num">${usd(f.heroUsd)}</div>
-        <div class="per">${f.done ? `saved every month, from ${usd(p.initial.cost)} down to ${usd(p.totals.cost)}` : `a month Prune can cut, out of ${usd(p.totals.cost)}`}</div>
+        <div class="per">${f.done ? `saved every month, from ${usd(p.initial.cost)} down to ${usd(p.totals.cost)}` : f.adviceOnly ? `a month in suggestions to review, out of ${usd(p.totals.cost)}` : `a month Prune can cut, out of ${usd(p.totals.cost)}`}${p.kind === "sample" ? "" : " (estimated)"}</div>
         <div class="facts">
-          <div class="fact"><div class="v">${rng(f.kwh)}<small>kWh</small></div><div class="k">less energy a month</div></div>
+          <div class="fact"><div class="v">${rng(f.kwh)}<small>kWh</small></div><div class="k">${f.adviceOnly ? "less energy a month if applied" : "less energy a month"}</div></div>
           <div class="fact"><div class="v">${f.ready.length}</div><div class="k">fix${f.ready.length === 1 ? "" : "es"} ready</div></div>
+          ${p.groups.length - f.ready.length > 0 ? `<div class="fact"><div class="v">${p.groups.length - f.ready.length}</div><div class="k">suggestion${p.groups.length - f.ready.length === 1 ? "" : "s"}</div></div>` : ""}
         </div>
-        ${top ? `<button class="primary" data-open="${esc(top.id)}">Start with ${esc(friendly(top.function).toLowerCase())}<span class="arr">→</span></button>` : `<span class="muted">Nothing left to fix here.</span>`}
+        ${top ? `<button class="primary" data-open="${esc(top.id)}">Start with ${esc(friendly(top.function).toLowerCase())}<span class="arr">→</span></button>`
+          : p.groups.length ? `<button class="outline" data-open="${esc(p.groups[0].id)}">Read the suggestions</button>` : `<span class="muted">Nothing left to fix here.</span>`}
+        ${estimateNote(p)}
       </div>
       <div>${treeArt()}</div>
     </div>
@@ -312,10 +345,15 @@ function renderFind() {
     <div class="wrap"><div class="section">${ribbon()}</div>
       <div class="section"><div class="section-head"><h2>What Prune found</h2>
         <div class="legend"><span class="tag same">Same answer</span><span class="tag checked">Checked</span><span class="tag advice">Advice only</span></div></div>
-        ${p.groups.length || p.accepted.length ? rowsHtml() : `<div class="empty">${sproutArt()}<p>No AI waste found here.</p></div>`}</div></div>`;
+        ${p.groups.length || p.accepted.length ? rowsHtml() : `<div class="empty">${sproutArt()}<p>Prune found ${p.sites.length} AI call${p.sites.length === 1 ? "" : "s"} and nothing wasteful in ${p.sites.length === 1 ? "it" : "them"}.</p></div>`}</div></div>`;
 }
 
 // ---------- PROVE ----------
+
+function diffHtml(diffs) {
+  return Object.entries(diffs).map(([file, d]) => [`<span class="file">${esc(file)}</span>`, ...d.split("\n").filter((l) => !/^(\+\+\+|---|@@)/.test(l))
+    .map((l) => `<span class="${l.startsWith("+") ? "add" : l.startsWith("-") ? "del" : ""}">${esc(l) || " "}</span>`)].join("\n")).join("\n\n");
+}
 
 function renderProve() {
   const el = $("#view-prove");
@@ -337,17 +375,25 @@ function renderProve() {
       <h1>${esc(friendly(g.function))}</h1></div>
       ${g.has_edits ? `<div class="save">${about(sm.saved_usd)} a month<small>${usd(sm.cost_before)} → ${usd(sm.cost_after)} · ${rng(sm.saved_kwh)} kWh less</small></div>` : `<div class="save muted">Advice</div>`}</div>`;
   const list = `<div class="changes">${changes.map((f, i) => `<div class="change ${f.included ? "" : "off"}"><span class="ix">${pad2(i + 1)}</span>
-      <div><div class="t">${esc(changeName(f))}</div><div class="d">${esc(WHY[f.rule] || "")}${f.included ? "" : " Left out of this fix."}</div></div>${tag(f, g)}</div>`).join("")}</div>`;
+      <div><div class="t">${esc(changeName(f))}</div><div class="d">${esc(WHY[f.rule] || "")}${f.included ? "" : ` ${esc(f.note || "Left out of this fix.")}`}</div></div>${tag(f)}</div>`).join("")}</div>`;
+  const traffic = g.before.estimate ? `<form class="estimate" data-site="${esc(g.id)}" id="siteTrafficForm">
+      <span>Runs a month (estimate)</span><span class="money"><input id="siteCalls" type="number" min="1" value="${Math.round(g.before.calls)}"></span>
+      <button class="link" type="submit">Update</button><span class="muted">${esc(g.price_source)}</span></form>` : "";
+  const suggested = Object.keys(g.advice_diffs || {}).length
+    ? `<details class="code"><summary>Show the suggested change (not applied)</summary><pre>${diffHtml(g.advice_diffs)}</pre></details>` : "";
 
   if (!g.has_edits) {
-    el.innerHTML = `<div class="wrap">${head}${list}<div class="proof"><div class="side"><div class="eyebrow">Advice only</div></div>
-      <div><p>Prune can't prove these are safe yet, so it never applies them on its own. They stay here as suggestions.</p></div></div></div>`;
+    el.innerHTML = `<div class="wrap">${head}${traffic}${list}<div class="proof"><div class="side"><div class="eyebrow">Advice only</div></div>
+      <div><p>Prune can't prove these are safe here, so it never applies them on its own.${p.linked ? " For linked repos Prune only reads the code, so anything that needs your tests or your past requests stays a suggestion." : ""}</p></div></div>
+      ${suggested}</div>`;
     return;
   }
 
   const testsOk = st.tests?.passed;
   const safety = `<div class="proof"><div class="side"><div class="eyebrow">Proof 1</div><div class="serif">Nothing breaks</div></div><div>
-    ${st.tests ? `<div class="result ${st.tests.passed ? "ok" : "bad"}"><span class="mark">${st.tests.passed ? "✓" : "!"}</span>
+    ${st.tests?.skipped ? `<div class="result"><span class="mark">–</span>Not run for linked repos</div>
+        <p style="margin-top:14px">${esc(st.tests.reason)} These changes keep the same answer by design: caching, removing repeats and capping length.</p>`
+    : st.tests ? `<div class="result ${st.tests.passed ? "ok" : "bad"}"><span class="mark">${st.tests.passed ? "✓" : "!"}</span>
         ${st.tests.passed ? (st.tests.kind === "tests" ? `All ${st.tests.tests_run} of your checks pass with the fix` : "The code still runs with the fix") : "One of your checks failed, so this fix is off"}</div>`
       : `<p>Prune makes the change in a sealed copy of your project and runs your own checks. If any fail, the fix is dropped.</p>
         <button class="primary" data-act="tests" ${dis}>${busy("tests")}Run the checks</button>`}</div></div>`;
@@ -380,21 +426,20 @@ function renderProve() {
     answers = `<div class="proof"><div class="side"><div class="eyebrow">Proof 2</div><div class="serif">Same answers</div></div><div>${body}</div></div>`;
   }
 
-  const diffText = Object.values(st.diffs).join("\n").split("\n").filter((l) => !/^(\+\+\+|---|@@)/.test(l))
-    .map((l) => `<span class="${l.startsWith("+") ? "add" : l.startsWith("-") ? "del" : ""}">${esc(l) || " "}</span>`).join("\n");
-
-  el.innerHTML = `<div class="wrap">${head}${list}${safety}${answers}
-    <details class="code"><summary>Show the exact code change</summary><pre>${diffText}</pre></details>
+  el.innerHTML = `<div class="wrap">${head}${traffic}${list}${safety}${answers}
+    <details class="code"><summary>Show the exact code change</summary><pre>${diffHtml(st.diffs)}</pre></details>${suggested}
     <div class="next"><button class="primary" data-tab="ship" ${st.can_accept ? "" : "disabled"}>See the receipt<span class="arr">→</span></button></div></div>`;
 }
 
 // ---------- SHIP ----------
 
-function receiptHtml(r, shipped) {
-  const net = r.saved_usd - r.review_cost;
+const whText = (r) => `${r[1] < 10 ? r[0].toFixed(1) : Math.round(r[0])}–${r[1] < 10 ? r[1].toFixed(1) : Math.round(r[1])} Wh`;
+
+// r is the receipt the server worked out; changes are the findings it covers.
+function receiptHtml(name, r, changes, shipped) {
   return `<div class="receipt">
-    <h3>Prune</h3><div class="sub">${esc(r.name)} · ${esc(r.date)}</div>
-    ${r.changes.map((c) => `<div class="ln"><span>${esc(c.name)}</span><span>${esc(c.proof)}</span></div>`).join("")}
+    <h3>Prune</h3><div class="sub">${esc(name)} · ${esc(r.date || new Date().toISOString().slice(0, 10))}</div>
+    ${changes.map((c) => `<div class="ln"><span>${esc(changeName(c))}</span><span>${esc(c.badge.label)}</span></div>`).join("")}
     <hr>
     <div class="ln"><span>Before</span><span>${cents(r.cost_before)}/mo</span></div>
     <div class="ln"><span>After</span><span>${cents(r.cost_after)}/mo</span></div>
@@ -403,22 +448,12 @@ function receiptHtml(r, shipped) {
     <div class="ln"><span>Energy saved</span><span>${rng(r.saved_kwh)} kWh/mo</span></div>
     <div class="ln"><span>Carbon avoided</span><span>${rng(r.saved_kg)} kg CO₂/mo</span></div>
     <hr>
-    <div class="ln"><span>This review cost</span><span>−${cents(r.review_cost)}</span></div>
-    <div class="ln net"><span>Net, first month</span><span>${cents(net)}</span></div>
-    <div class="note">Dollars come from your usage. Energy and carbon are ranges.</div>
-    ${shipped ? `<div class="stamp">SHIPPED</div>` : ""}
+    <div class="ln"><span>This review cost</span><span>−${cents(r.review_cost_usd)}${r.review_wh[1] ? ` · ${whText(r.review_wh)}` : ""}</span></div>
+    <div class="ln net"><span>Net, first month</span><span>${cents(r.net_usd)}</span></div>
+    <div class="ln"><span>Checks</span><span>${esc(r.tests)}</span></div>
+    <div class="note">${r.estimate ? "Every figure is an estimate: there's no usage data for this code." : "Dollars come from your usage."} Energy and carbon are ranges.</div>
+    ${shipped ? `<div class="stamp">${r.tests.startsWith("not run") ? "ACCEPTED" : "SHIPPED"}</div>` : ""}
   </div>`;
-}
-
-function receiptFor(g) {
-  return {
-    name: friendly(g.function),
-    date: new Date().toISOString().slice(0, 10),
-    changes: g.findings.filter((f) => f.included).map((f) => ({ name: changeName(f), proof: proofOf(f, g).text })),
-    cost_before: g.summary.cost_before, cost_after: g.summary.cost_after, saved_usd: g.summary.saved_usd,
-    saved_kwh: g.summary.saved_kwh, saved_kg: g.summary.saved_kg_co2e,
-    review_cost: g.status.replay?.replay_cost_usd || 0,
-  };
 }
 
 function renderShip() {
@@ -432,24 +467,30 @@ function renderShip() {
   let main;
   if (shippedId) {
     const a = p.accepted.find((x) => x.id === shippedId);
-    const r = state.receipts[shippedId];
-    main = `<div class="ship"><div class="lead"><div class="eyebrow">Shipped</div><h1>${esc(friendly(a.function))}</h1>
+    main = `<div class="ship"><div class="lead"><div class="eyebrow">${p.linked ? "Accepted" : "Shipped"}</div><h1>${esc(friendly(a.function))}</h1>
         ${leavesArt()}
-        <div class="rollout">${a.rollout.map((x) => `<div><b>${x.pct}%</b><span>${esc(x.note)}</span></div>`).join("")}</div></div>
-      ${r ? receiptHtml(r, true) : `<div class="receipt"><h3>Prune</h3><div class="ln em"><span>Saved</span><span>${cents(a.saved_usd)}/mo</span></div><div class="stamp">SHIPPED</div></div>`}</div>`;
+        <div class="rollout">${a.rollout.map((x) => `<div><b>${x.pct ? x.pct + "%" : "Next"}</b><span>${esc(x.note)}</span></div>`).join("")}</div>
+        ${p.linked ? `<div class="btns" style="margin-top:22px"><button class="primary" data-act="copy-patch" data-id="${esc(a.id)}">Copy the change</button>
+          <span class="muted">A patch you can apply with <code>git apply</code>.</span></div>
+          <details class="code"><summary>Show the change</summary><pre>${diffHtml({ [a.file]: a.patch })}</pre></details>` : ""}</div>
+      ${receiptHtml(friendly(a.function), a.receipt, a.changes, true)}</div>`;
   } else if (g) {
     const st = g.status;
-    main = `<div class="ship"><div class="lead"><div class="eyebrow">Ready to ship</div><h1>${esc(friendly(g.function))}</h1>
-        <p>${st.can_accept ? "Both proofs are in. Shipping opens the change for your team and rolls it out to a small share of people first." : esc(st.blocked_by || "Finish the proofs first.")}</p>
+    const lead = p.linked
+      ? "Prune only read this code. Accepting gives you the exact change to copy into your repo. Run your tests on it before merging."
+      : st.can_accept ? "Both proofs are in. Shipping opens the change for your team and rolls it out to a small share of people first."
+      : esc(st.blocked_by || "Finish the proofs first.");
+    main = `<div class="ship"><div class="lead"><div class="eyebrow">Ready to ${p.linked ? "accept" : "ship"}</div><h1>${esc(friendly(g.function))}</h1>
+        <p>${lead}</p>
         <div class="btns" style="margin-top:26px">
-          <button class="primary" data-act="accept" ${st.can_accept && !state.busy ? "" : "disabled"}>${busy}Ship it · save ${about(g.summary.saved_usd)}/mo</button>
+          <button class="primary" data-act="accept" ${st.can_accept && !state.busy ? "" : "disabled"}>${busy}${p.linked ? "Accept the change" : "Ship it"} · save ${about(g.summary.saved_usd)}/mo</button>
           ${st.can_accept ? "" : `<button class="link" data-tab="prove">Back to the proofs</button>`}</div></div>
-      ${receiptHtml(receiptFor(g), false)}</div>`;
+      ${receiptHtml(friendly(g.function), st.receipt, g.findings.filter((f) => f.included), false)}</div>`;
   } else {
     main = `<div class="empty">${sproutArt()}<div><p>Pick a fix and prove it first. Its receipt shows up here.</p><button class="outline" data-tab="find">See what Prune found</button></div></div>`;
   }
   const total = p.accepted.reduce((s, a) => s + a.saved_usd, 0);
-  const history = p.accepted.length ? `<div class="history"><div class="section-head"><h2>Shipped so far</h2><span class="serif green" style="font-size:34px">−${usd(total)}/mo</span></div>
+  const history = p.accepted.length ? `<div class="history"><div class="section-head"><h2>${p.linked ? "Accepted" : "Shipped"} so far</h2><span class="serif green" style="font-size:34px">−${usd(total)}/mo</span></div>
     <div class="rows">${p.accepted.map((a, i) => `<button class="row shipped" data-open="shipped:${esc(a.id)}"><span class="ix">${pad2(i + 1)}</span>
       <span class="nm">${esc(friendly(a.function))}</span><span class="ch">${rng(a.saved_kwh)} kWh less</span><span class="usd">−${about(a.saved_usd)}</span></button>`).join("")}</div></div>` : "";
   el.innerHTML = `<div class="wrap">${main}${history}</div>`;
@@ -478,13 +519,6 @@ function renderRemember() {
 
 // ---------- ENERGY ----------
 
-// Everyday comparisons, all estimates on the middle of each range.
-const EQUIV = {
-  kwhPerPhoneCharge: 0.015, // a full smartphone charge, ~12–19 Wh
-  kwhPerHomeDay: 29, // average US home, EIA: ~10,800 kWh a year
-  kgPerKm: 0.25, // average passenger car, EPA: ~400 g CO₂ a mile
-};
-
 function energyBubbles(kwh) {
   const count = Math.max(10, Math.min(70, Math.round(mid(kwh) / 1.6)));
   const r = rand(23);
@@ -511,101 +545,71 @@ function glyphRow(kind, n) {
   return `<div class="glyphs ${kind}">${Array.from({ length: shown }, (_, i) => `<i style="animation-delay:${i * 25}ms">${g}</i>`).join("")}${n > shown ? `<span>+${int(n - shown)}</span>` : ""}</div>`;
 }
 
-function reviewWh() {
-  // Prune's own footprint: the answer re-checks it ran. Analysis reads code without AI.
-  const per = state.catalog?.energy_per_1k;
-  let lo = 0, hi = 0;
-  for (const r of Object.values(state.replayRuns)) {
-    const size = state.catalog?.models?.[r.model]?.size || "small";
-    const e = per ? per[size] : [0.00002, 0.00006];
-    const k = (r.calls * r.tokens) / 1000;
-    lo += k * e[0] * 1000;
-    hi += k * e[1] * 1000;
-  }
-  return [lo, hi];
-}
-
 function renderEnergy() {
   const el = $("#view-energy");
   const p = state.project;
   if (!p) { el.innerHTML = ""; return; }
-  const f = figures();
-  const kwh = f.kwh, kg = f.kg;
-  const m = mid(kwh);
-  const phones = Math.round(m / EQUIV.kwhPerPhoneCharge);
-  const homeDays = m / EQUIV.kwhPerHomeDay;
-  const km = Math.round(mid(kg) / EQUIV.kgPerKm);
-
-  // Over time: one step per shipped fix, then what's left if every ready fix ships.
-  const steps = state.energySteps.slice();
-  const readyKwh = [0, 1].map((i) => f.ready.reduce((a, g) => a + g.summary.saved_kwh[i], 0));
-  const projected = [Math.max(0, p.totals.kwh[0] - readyKwh[0]), Math.max(0, p.totals.kwh[1] - readyKwh[1])];
-  const cols = [...steps.map((s, i) => ({ ...s, now: i === steps.length - 1 })), ...(f.ready.length ? [{ label: "If every fix ships", kwh: projected, projected: true }] : [])];
-  const top = Math.max(...cols.map((c) => c.kwh[1]), 1);
-
-  // Which fixes save the most energy.
-  const fixes = [
-    ...p.accepted.map((a) => ({ name: friendly(a.function), kwh: a.saved_kwh, shipped: true })),
-    ...f.ready.map((g) => ({ name: friendly(g.function), kwh: g.summary.saved_kwh, shipped: false })),
-  ].sort((a, b) => mid(b.kwh) - mid(a.kwh));
-  const fmax = Math.max(...fixes.map((x) => x.kwh[1]), 1);
-
-  const wh = reviewWh();
-  const net = [Math.max(0, kwh[0] - wh[1] / 1000), Math.max(0, kwh[1] - wh[0] / 1000)];
-  const share = kwh[0] > 0 ? (mid(wh) / 1000) / mid(kwh) : 0;
-  const per = state.catalog?.energy_per_1k || { large: [0.00022, 0.00061], medium: [0.00008, 0.00022], small: [0.00002, 0.00006] };
-  const grid = state.catalog?.grid_kg_per_kwh || [0.25, 0.45];
+  const e = p.energy;
+  const kwh = e.kwh, kg = e.kg_co2e, eq = e.equivalents;
+  const cols = e.steps.map((c, i) => ({ ...c, label: c.projected || i === 0 ? c.label : friendly(c.label),
+    now: !c.projected && i === e.steps.filter((x) => !x.projected).length - 1 }));
+  const top = Math.max(...cols.map((c) => c.kwh[1]), 0.001);
+  const fmax = Math.max(...e.top.map((x) => x.kwh[1]), 0.001);
+  const wh = e.review_wh;
   const whNum = (x) => (x >= 10 ? Math.round(x).toLocaleString() : x.toFixed(2));
-  const whRange = (r) => `${whNum(r[0] * 1000)}–${whNum(r[1] * 1000)} Wh`;
+  const whRange = (r) => `${whNum(r[0])}–${whNum(r[1])} Wh`;
+  const per1k = (r) => whRange([r[0] * 1000, r[1] * 1000]);
+  const share = e.review_share;
+  const m = e.method;
 
   el.innerHTML = `
     <div class="energy-hero">
       ${energyBubbles(kwh)}
       <div class="hero-tree">${treeArt()}</div>
       <div class="wrap">
-        <div class="eyebrow">${f.done ? "Energy saved" : "Energy Prune can save"} · ${esc(p.name)}</div>
+        <div class="eyebrow">${e.done ? "Energy saved" : e.advice_only ? "Energy the suggestions could save" : "Energy Prune can save"} · ${sourceLine(p)}</div>
         <div class="num">${rng(kwh)}<span class="unit">kWh</span></div>
-        <div class="per">every month, and ${rng(kg)} kg of CO₂ that never reaches the air</div>
+        <div class="per">every month, and ${rng(kg)} kg of CO₂ that never reaches the air${p.kind === "sample" ? "" : " (estimated)"}</div>
       </div>
     </div>
 
     <div class="wrap">
       <div class="section"><div class="section-head"><h2>What that's like</h2><span class="legend">Estimates, using the middle of each range</span></div>
         <div class="equiv">
-          <div><div class="v">${int(phones)}</div><div class="k">phone charges a month</div>${glyphRow("phone", Math.round(phones / 250))}<div class="g-note">each = 250 charges</div></div>
-          <div><div class="v">${homeDays >= 10 ? int(homeDays) : homeDays.toFixed(1)}</div><div class="k">days of power for an average home</div>${glyphRow("home", Math.max(1, Math.round(homeDays)))}<div class="g-note">each = one home for a day</div></div>
-          <div><div class="v">${int(km)} km</div><div class="k">of driving avoided, in carbon terms</div>
-            <div class="road"><i style="width:${Math.min(100, (km / 400) * 100)}%"></i></div><div class="g-note">${int(km * 0.621)} miles</div></div>
+          <div><div class="v">${int(eq.phone_charges)}</div><div class="k">phone charges a month</div>${glyphRow("phone", Math.round(eq.phone_charges / 250))}<div class="g-note">each = 250 charges</div></div>
+          <div><div class="v">${eq.home_days >= 10 ? int(eq.home_days) : eq.home_days}</div><div class="k">days of power for an average home</div>${glyphRow("home", Math.max(eq.home_days > 0 ? 1 : 0, Math.round(eq.home_days)))}<div class="g-note">each = one home for a day</div></div>
+          <div><div class="v">${int(eq.km_driving)} km</div><div class="k">of driving avoided, in carbon terms</div>
+            <div class="road"><i style="width:${Math.min(100, (eq.km_driving / 400) * 100)}%"></i></div><div class="g-note">${int(eq.km_driving * 0.621)} miles</div></div>
         </div></div>
 
       <div class="section"><div class="section-head"><h2>Energy used each month</h2>
-          <span class="legend"><span><i class="k"></i>Likely range</span>${f.ready.length ? `<span><i class="pg"></i>After the fixes still waiting</span>` : ""}</span></div>
+          <span class="legend"><span><i class="k"></i>Likely range</span>${cols.some((c) => c.projected) ? `<span><i class="pg"></i>After the fixes still waiting</span>` : ""}</span></div>
         <div class="steps">${cols.map((c) => `<div class="stepcol ${c.projected ? "proj" : ""} ${c.now ? "now" : ""}">
             <div class="val">${rng(c.kwh)}<small> kWh</small></div>
             <div class="track"><div class="hi" style="height:${(c.kwh[1] / top) * 100}%"></div><div class="lo" style="height:${(c.kwh[0] / top) * 100}%"></div></div></div>`).join("")}</div>
         <div class="steplabs">${cols.map((c) => `<span class="${c.projected ? "proj" : ""}">${esc(c.label)}</span>`).join("")}</div>
-        <p class="muted note">${p.accepted.length ? `Each column is one fix shipped.` : `Ship a fix and a new column appears here.`} The tall faint part is the high end of the estimate, the solid part the low end.</p></div>
+        <p class="muted note">${p.accepted.length ? "Each column is one fix shipped." : "Ship a fix and a new column appears here."} The tall faint part is the high end of the estimate, the solid part the low end.</p></div>
 
       <div class="section"><div class="section-head"><h2>Biggest energy savers</h2><span class="legend">kWh a month</span></div>
-        ${fixes.length ? `<div class="savers">${fixes.map((x, i) => `<div class="saver"><span class="ix">${pad2(i + 1)}</span><span class="n">${esc(x.name)}</span>
+        ${e.top.length ? `<div class="savers">${e.top.map((x, i) => `<div class="saver"><span class="ix">${pad2(i + 1)}</span><span class="n">${esc(friendly(x.name))}</span>
             <div class="rbar"><i style="left:${(x.kwh[0] / fmax) * 100}%;width:${((x.kwh[1] - x.kwh[0]) / fmax) * 100}%"></i><b style="width:${(x.kwh[0] / fmax) * 100}%"></b></div>
-            <span class="v">${rng(x.kwh)}</span><span class="tag ${x.shipped ? "shipped" : "same"}">${x.shipped ? "Shipped" : "Ready"}</span></div>`).join("")}</div>`
+            <span class="v">${rng(x.kwh)}</span><span class="tag ${x.shipped ? "shipped" : x.advice ? "advice" : "same"}">${x.shipped ? (p.linked ? "Accepted" : "Shipped") : x.advice ? "Suggestion" : "Ready"}</span></div>`).join("")}</div>`
           : `<p class="muted">No energy fixes in this project yet.</p>`}</div>
 
       <div class="section net">
         <div><div class="eyebrow">Net impact</div>
-          <div class="big-line">Saving ${rng(kwh)} kWh a month cost <em>${whRange([wh[0] / 1000, wh[1] / 1000])}</em> of Prune's own energy.</div>
-          <p class="muted">${mid(wh) > 0 ? `That's what re-checking past answers on the smaller model used, about ${share < 0.001 ? "less than 0.1%" : (share * 100).toFixed(1) + "%"} of one month's savings. Reading your code uses no AI.` : `Reading your code uses no AI, so this review has used almost no energy so far. Answer checks add a little, and they show up here.`}</p></div>
+          <div class="big-line">Saving ${rng(kwh)} kWh a month cost <em>${whRange(wh)}</em> of Prune's own energy.</div>
+          <p class="muted">${wh[1] > 0 ? `That's what re-checking past answers on the smaller model used, about ${share < 0.001 ? "less than 0.1%" : (share * 100).toFixed(1) + "%"} of one month's savings. Reading code uses no AI.` : "Reading code uses no AI, so this review has used almost no energy so far. Answer checks add a little, and they show up here."}</p></div>
         <div class="netbox"><div class="ln"><span>Saved a month</span><span>${rng(kwh)} kWh</span></div>
-          <div class="ln"><span>Prune's own use</span><span>−${whRange([wh[0] / 1000, wh[1] / 1000])}</span></div>
-          <div class="ln total"><span>Net, first month</span><span class="green">${rng(net)} kWh</span></div></div>
+          <div class="ln"><span>Prune's own use</span><span>−${whRange(wh)}</span></div>
+          <div class="ln total"><span>Net, first month</span><span class="green">${rng(e.net_kwh)} kWh</span></div></div>
       </div>
 
       <div class="section method"><div class="section-head"><h2>How we estimate this</h2></div>
-        <div class="formula"><span>Words processed<small>tokens, from your usage</small></span><b>×</b><span>Energy per 1,000 tokens<small>a low–high range by model size</small></span><b>×</b><span>Grid carbon<small>${grid[0]}–${grid[1]} kg CO₂ per kWh</small></span></div>
-        <div class="ranges">${Object.entries(per).map(([k, v]) => `<div><span>${k === "large" ? "Large models" : k === "medium" ? "Mid-size models" : "Small models"}</span><span>${whRange(v)} per 1,000 tokens</span></div>`).join("")}</div>
-        <p class="muted">AI companies don't publish energy use per model, so Prune always shows a range, never one exact number. Dollar figures come straight from your bill and are exact. Reused (cached) instructions count at a tenth, since they skip most of the work. Sources:</p>
-        <ul class="sources">${(state.catalog?.sources || []).map((s) => `<li>${esc(s)}</li>`).join("")}<li>Comparisons: EIA average US home use; EPA average car emissions per mile.</li></ul></div>
+        <div class="formula"><span>Words processed<small>tokens, ${p.kind === "sample" ? "from your usage" : "estimated from the code"}</small></span><b>×</b><span>Energy per 1,000 tokens<small>a low–high range by model size</small></span><b>×</b><span>Grid carbon<small>${m.grid_kg_per_kwh[0]}–${m.grid_kg_per_kwh[1]} kg CO₂ per kWh</small></span></div>
+        <div class="ranges">${["large", "medium", "small"].map((k) => `<div><span>${{ large: "Large models", medium: "Mid-size models", small: "Small models" }[k]}</span><span>${per1k(m.energy_per_1k[k])} per 1,000 tokens</span></div>`).join("")}</div>
+        <p class="muted">AI companies don't publish energy use per model, so Prune always shows a range, never one exact number. Dollar figures ${p.kind === "sample" ? "come straight from your bill and are exact" : "use list prices and an estimated number of runs"}. Reused (cached) instructions count at ${m.cached_token_weight === 0.1 ? "a tenth" : m.cached_token_weight}, since they skip most of the work. Sources:</p>
+        <ul class="sources">${m.sources.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>
     </div>`;
 }
 
@@ -619,47 +623,33 @@ const FEATURE_NAMES = {
   storefront: "Product pages",
   "spending-insights": "Spending insights",
 };
-const featureName = (k) => FEATURE_NAMES[k] || k.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+const featureName = (k) => FEATURE_NAMES[k] || (/[/.]/.test(k) ? k : k.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase()));
 
-function budgetRows() {
-  const p = state.project;
-  const rows = p.budgets.map((b) => ({ key: b.feature, cost: b.cost, limit: state.limits[b.feature] ?? b.budget }));
-  for (const [k, v] of Object.entries(state.addedLimits)) rows.push({ key: k, cost: 0, limit: v });
-  return rows;
+function reasonText(x) {
+  if (x.kind === "threshold") return `That's more than the ${usd(x.limit)} a month you allow any single change to add.`;
+  return `It would take ${featureName(x.feature)} to ${usd(x.after)} a month, over its ${usd(x.limit)} limit.`;
 }
 
-// The waiting change, judged against the limits as they are right now (edits included).
-function waitingChange(rows) {
-  const r = state.incomingCheck, inc = state.project.incoming;
-  if (!r || !inc) return null;
-  const threshold = state.threshold ?? state.project.approval_threshold;
-  const row = rows.find((x) => x.key === r.check.feature);
-  const after = (row ? row.cost : 0) + r.added_usd;
-  const reasons = [];
-  if (r.added_usd > threshold) reasons.push(`That's more than the ${usd(threshold)} a month you allow any single change to add.`);
-  if (row && after > row.limit) reasons.push(`It would take ${featureName(row.key)} to ${usd(after)} a month, over its ${usd(row.limit)} limit.`);
-  const fn = r.items[0]?.function;
-  return { r, inc, row, added: r.added_usd, reasons, name: fn ? friendly(fn) : "This change", feature: row?.key };
-}
-
-function limitRow(row, pending) {
+function limitRow(row, w) {
   const editing = state.editing === row.key;
-  const extra = pending && pending.feature === row.key && !state.decision ? pending.added : 0;
-  const max = Math.max(row.cost + extra, row.limit, 1) * 1.08;
-  const within = Math.min(row.cost, row.limit), over = Math.max(0, row.cost - row.limit);
-  const status = row.cost > row.limit ? `<b>Over by $${int(row.cost - row.limit)}</b>` : `$${int(row.limit - row.cost)} left`;
-  return `<div class="limit ${row.cost > row.limit ? "over" : ""}">
+  const pendingExtra = w && w.flagged && !w.decision && w.feature === row.key ? w.added_usd : 0;
+  const has = row.limit !== null && row.limit !== undefined;
+  const lim = has ? row.limit : 0;
+  const max = Math.max(row.cost + pendingExtra, lim, 1) * 1.08;
+  const within = has ? Math.min(row.cost, lim) : row.cost, over = has ? Math.max(0, row.cost - lim) : 0;
+  const status = !has ? "No limit yet" : row.over ? `<b>Over by $${int(row.cost - lim)}</b>` : `$${int(lim - row.cost)} left`;
+  return `<div class="limit ${row.over ? "over" : ""} ${has ? "" : "nolimit"}">
     <span class="n">${esc(featureName(row.key))}</span>
-    <div class="bar" title="${usd(row.cost)} spent of ${usd(row.limit)}">
+    <div class="bar" title="${usd(row.cost)} spent${has ? ` of ${usd(lim)}` : ""}">
       <i style="width:${(within / max) * 100}%"></i>
-      ${over ? `<s style="left:${(row.limit / max) * 100}%;width:${(over / max) * 100}%"></s>` : ""}
-      ${extra ? `<em style="left:${(row.cost / max) * 100}%;width:${(extra / max) * 100}%"></em>` : ""}
-      <u style="left:${(row.limit / max) * 100}%"></u></div>
+      ${over ? `<s style="left:${(lim / max) * 100}%;width:${(over / max) * 100}%"></s>` : ""}
+      ${pendingExtra ? `<em style="left:${(row.cost / max) * 100}%;width:${(pendingExtra / max) * 100}%"></em>` : ""}
+      ${has ? `<u style="left:${(lim / max) * 100}%"></u>` : ""}</div>
     ${editing
-      ? `<span class="s edit">$<input id="limitInput" type="number" min="0" value="${Math.round(row.limit)}"> a month</span>
+      ? `<span class="s edit">$<input id="limitInput" type="number" min="0" value="${has ? Math.round(lim) : Math.ceil(row.cost * 1.2 / 10) * 10 || 50}"> a month</span>
          <span class="acts"><button class="link" data-act="limit-save" data-key="${esc(row.key)}">Save</button></span>`
-      : `<span class="s">${usd(row.cost)} of ${usd(row.limit)}<br><small>${status}</small></span>
-         <span class="acts"><button class="link" data-act="limit-edit" data-key="${esc(row.key)}">Change</button></span>`}
+      : `<span class="s">${usd(row.cost)}${has ? ` of ${usd(lim)}` : " a month"}<br><small>${status}</small></span>
+         <span class="acts"><button class="link" data-act="limit-edit" data-key="${esc(row.key)}">${has ? "Change" : "Set a limit"}</button></span>`}
   </div>`;
 }
 
@@ -667,38 +657,38 @@ function renderBudgets() {
   const el = $("#view-budgets");
   const p = state.project;
   if (!p) { el.innerHTML = ""; return; }
-  const rows = budgetRows();
-  const w = waitingChange(rows);
-  const flagged = w && w.reasons.length;
-  const threshold = state.threshold ?? p.approval_threshold;
+  const b = p.budget, rows = b.rows, w = b.waiting;
+  const name = w ? friendly(w.function || "this change") : "";
 
   let waiting;
   if (!w) {
     waiting = `<p class="muted">Nothing waiting. Prune checks every new code change against your limits before it goes live.</p>`;
-  } else if (state.decision) {
-    waiting = `<div class="result ${state.decision === "approved" ? "ok" : ""}"><span class="mark">${state.decision === "approved" ? "✓" : "↩"}</span>
-      ${state.decision === "approved" ? `You approved ${esc(w.name.toLowerCase())}. It can go live.` : `Sent back to the developer with the cost estimate.`}</div>
-      <p><button class="link" data-act="undo-decision">Undo</button></p>`;
-  } else if (!flagged) {
-    waiting = `<div class="result ok"><span class="mark">✓</span>${esc(w.name)} adds about ${about(w.added)} a month and fits your limits, so it can go live.</div>`;
+  } else if (w.decision) {
+    waiting = `<div class="result ${w.decision === "approved" ? "ok" : ""}"><span class="mark">${w.decision === "approved" ? "✓" : "↩"}</span>
+      ${w.decision === "approved" ? `You approved ${esc(name.toLowerCase())}. It can go live.` : "Sent back to the developer with the cost estimate."}</div>
+      <p><button class="link" data-act="decide-change" data-v="">Undo</button></p>`;
+  } else if (!w.flagged) {
+    waiting = `<div class="result ok"><span class="mark">✓</span>${esc(name)} adds about ${about(w.added_usd)} a month and fits your limits, so it can go live.</div>`;
   } else {
     waiting = `<div class="ask">
-      <div class="big-line">${esc(w.name)} would add about <span class="green">${about(w.added)}</span> a month.</div>
-      <ul class="reasons">${w.reasons.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-      <p class="muted small-note">Estimated from ${esc(w.inc.traffic_source.replace(/^analytics:\s*/, "").replace(/\s*\(estimate\)/, ""))}.</p>
+      <div class="big-line">${esc(name)} would add about <span class="green">${about(w.added_usd)}</span> a month.</div>
+      <ul class="reasons">${w.reasons.map((x) => `<li>${esc(reasonText(x))}</li>`).join("")}</ul>
+      <p class="muted small-note">Estimated from ${esc(w.traffic_source.replace(/^analytics:\s*/, "").replace(/\s*\(estimate\)/, ""))}.</p>
       <div class="btns"><button class="primary" data-act="decide-change" data-v="sent back">Send it back</button>
         <button class="outline" data-act="decide-change" data-v="approved">Approve anyway</button></div>
-      <details class="code"><summary>See the new code</summary><pre>${esc(w.inc.code)}</pre></details></div>`;
+      <details class="code"><summary>See the new code</summary><pre>${esc(w.code)}</pre></details></div>`;
   }
+  const pendingLegend = w && w.flagged && !w.decision;
 
   el.innerHTML = `<div class="wrap">
-    <div class="fix-head"><div><div class="eyebrow">Budgets</div><h1>Monthly AI budgets</h1></div></div>
-    <p class="lede">Give each part of your app a monthly limit for AI. Before a new code change goes live, Prune works out what it will cost and asks you first if it would go over.</p>
+    <div class="fix-head"><div><div class="eyebrow">Budgets · ${sourceLine(p)}</div><h1>Monthly AI budgets</h1></div></div>
+    <p class="lede">Give each part of your app a monthly limit for AI. Before a new code change goes live, Prune works out what it will cost and asks you first if it would go over.${b.estimate ? " Spending here is estimated." : ""}</p>
 
-    <div class="section"><div class="section-head"><h2>Your limits</h2><span class="legend"><span><i class="k"></i>Spent this month</span>${rows.some((r) => r.cost > r.limit) ? `<span><i class="o"></i>Over the limit</span>` : ""}${w && flagged && !state.decision ? `<span><i class="p"></i>Waiting change</span>` : ""}<span><i class="m"></i>Limit</span></span></div>
-      ${rows.length ? `<div class="limits">${rows.map((r) => limitRow(r, w)).join("")}</div>` : `<p class="muted">No limits yet. Add one below.</p>`}</div>
+    <div class="section"><div class="section-head"><h2>Your limits</h2><span class="legend"><span><i class="k"></i>Spent this month</span>${rows.some((r) => r.over) ? `<span><i class="o"></i>Over the limit</span>` : ""}${pendingLegend ? `<span><i class="p"></i>Waiting change</span>` : ""}<span><i class="m"></i>Limit</span></span></div>
+      ${rows.length ? `<div class="limits">${rows.map((r) => limitRow(r, w)).join("")}</div>` : `<p class="muted">No limits yet. Add one below.</p>`}
+      ${!b.from_config && rows.length ? `<p class="muted note">One row per file that calls an AI model. Add a prune.toml to the repo to group them by feature.</p>` : ""}</div>
 
-    <div class="section"><div class="section-head"><h2>Waiting for your OK</h2>${w && flagged && !state.decision ? `<span class="badge">1</span>` : ""}</div>${waiting}</div>
+    <div class="section"><div class="section-head"><h2>Waiting for your OK</h2>${pendingLegend ? `<span class="badge">1</span>` : ""}</div>${waiting}</div>
 
     <div class="section"><div class="section-head"><h2>Add a limit</h2></div>
       <div class="add">
@@ -707,20 +697,10 @@ function renderBudgets() {
         <button class="outline" data-act="limit-add">Add limit</button>
       </div>
       <div class="add rule">
-        <label>Ask me first when one change adds more than<span class="money">$<input id="thresholdInput" type="number" min="0" value="${Math.round(threshold)}"></span></label>
+        <label>Ask me first when one change adds more than<span class="money">$<input id="thresholdInput" type="number" min="0" value="${Math.round(b.threshold)}"></span></label>
         <span class="muted">a month</span>
       </div></div>
   </div>`;
-}
-
-async function checkIncoming() {
-  const p = state.project;
-  state.incomingCheck = null;
-  if (!p?.incoming) return;
-  try {
-    state.incomingCheck = await api("/api/review-change", { project: p.id, file: p.incoming.file, code: p.incoming.code, calls_per_month: p.incoming.calls_per_month });
-  } catch (e) { /* the page still works without it */ }
-  if (state.tab === "budgets") renderBudgets();
 }
 
 // ---------- shell ----------
@@ -747,7 +727,75 @@ async function retestIfChanged(gid) {
   }
 }
 
+// ---------- scanning a GitHub link ----------
+
+async function startScan(url) {
+  url = url.trim();
+  if (!url) { toast("Paste a GitHub link first"); return; }
+  state.scan = { state: "fetching", message: "Starting", input: url };
+  if (state.tab !== "find") go("find"); else renderFind();
+  let job;
+  try {
+    job = await api("/api/scan", { url, calls_per_month: state.project?.kind === "repo" ? state.project.default_calls : undefined });
+  } catch (e) {
+    state.scan = { state: "error", error: e.message, input: url };
+    renderFind();
+    return;
+  }
+  state.scan = { ...job, input: url };
+  renderFind();
+  while (state.scan && (state.scan.state === "fetching" || state.scan.state === "scanning")) {
+    await new Promise((r) => setTimeout(r, 500));
+    try {
+      const st = await api(`/api/scan/${job.id}`);
+      state.scan = { ...st, input: url };
+    } catch (e) {
+      state.scan = { state: "error", error: e.message, input: url };
+    }
+    if (state.tab === "find") renderFind();
+  }
+  if (state.scan.state === "done" && state.scan.project) {
+    const proj = state.scan.project;
+    setProject(proj, true);
+    rememberProject(proj);
+    state.scan = { state: "done", message: state.scan.message, input: url };
+    render();
+    refreshLedger();
+  }
+}
+
+function rememberProject(p) {
+  if (p.kind === "sample") return;
+  state.repos[p.id] = p;
+  const pick = $("#projectPick");
+  let opt = pick.querySelector(`option[value="project:${p.id}"]`);
+  if (!opt) {
+    opt = document.createElement("option");
+    opt.value = `project:${p.id}`;
+    opt.textContent = p.kind === "repo" ? p.source.label : "Pasted code";
+    pick.insertBefore(opt, pick.querySelector('option[value="paste"]'));
+  }
+  pick.value = opt.value;
+}
+
+async function projectCall(path, body, label = "save") {
+  await run(label, async () => {
+    const r = await api(path, { project: state.project.id, ...body });
+    setProject(r.project);
+    rememberProject(r.project);
+  });
+}
+
+document.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (e.target.id === "scanForm") return startScan($("#repoUrl").value);
+  if (e.target.id === "trafficForm") return projectCall("/api/traffic", { calls_per_month: Number($("#defaultCalls").value) });
+  if (e.target.id === "siteTrafficForm") return projectCall("/api/traffic", { site: e.target.dataset.site, calls_per_month: Number($("#siteCalls").value) });
+});
+
 document.addEventListener("click", async (e) => {
+  const sampleBtn = e.target.closest("[data-sample-load]");
+  if (sampleBtn) { loadSample(sampleBtn.dataset.sampleLoad); go("find"); return; }
   const open = e.target.closest("[data-open]");
   if (open) {
     const id = open.dataset.open;
@@ -763,10 +811,7 @@ document.addEventListener("click", async (e) => {
   const p = state.project, gid = state.selected, act = btn.dataset.act;
   if (act === "tests") await run("tests", async () => setProject((await api("/api/tests", { project: p.id, group: gid })).project));
   if (act === "replay") await run("replay", async () => {
-    const res = await api("/api/replay", { project: p.id, group: gid });
-    const g0 = p.groups.find((x) => x.id === gid);
-    state.replayRuns[gid] = { calls: res.result.total, model: res.result.new_model, tokens: g0.before.input_tokens + 5 };
-    setProject(res.project);
+    setProject((await api("/api/replay", { project: p.id, group: gid })).project);
     await retestIfChanged(gid);
   });
   if (act === "decide") await run("decide", async () => {
@@ -777,31 +822,35 @@ document.addEventListener("click", async (e) => {
     await retestIfChanged(gid);
   });
   if (act === "accept") await run("accept", async () => {
-    const g = p.groups.find((x) => x.id === gid);
-    const receipt = receiptFor(g);
     const r = await api("/api/accept", { project: p.id, group: gid });
     setProject(r.project);
-    state.receipts[r.accepted.id] = receipt;
-    state.energySteps.push({ label: friendly(r.accepted.function), kwh: state.project.totals.kwh });
+    rememberProject(r.project);
     state.selected = "shipped:" + r.accepted.id;
-    toast(`Shipped. Saving ${about(r.accepted.saved_usd)} a month`);
+    toast(`${p.linked ? "Accepted" : "Shipped"}. Saving ${about(r.accepted.saved_usd)} a month`);
   });
+  if (act === "copy-patch") {
+    const a = p.accepted.find((x) => x.id === btn.dataset.id);
+    try { await navigator.clipboard.writeText(a.patch + "\n"); toast("Copied. Apply it with git apply"); }
+    catch (err) { toast("Couldn't copy here. Open “Show the change” and copy it by hand"); }
+  }
   if (act === "limit-edit") { state.editing = btn.dataset.key; renderBudgets(); $("#limitInput")?.focus(); }
   if (act === "limit-save") {
     const v = Number($("#limitInput").value);
-    if (v >= 0) { if (btn.dataset.key in state.addedLimits) state.addedLimits[btn.dataset.key] = v; else state.limits[btn.dataset.key] = v; }
+    if (!(v >= 0)) { toast("Enter an amount of $0 or more"); return; }
     state.editing = null;
-    renderBudgets();
+    await projectCall("/api/budget/limit", { feature: btn.dataset.key, usd: v });
   }
   if (act === "limit-add") {
     const name = $("#newName").value.trim(), v = Number($("#newAmount").value);
     if (!name || !(v > 0)) { toast("Add a name and a monthly amount"); return; }
-    state.addedLimits[name] = v;
-    renderBudgets();
+    await projectCall("/api/budget/add", { name, usd: v });
     toast(`Limit added: ${name}, ${usd(v)} a month`);
   }
-  if (act === "decide-change") { state.decision = btn.dataset.v; renderBudgets(); toast(btn.dataset.v === "approved" ? "Approved" : "Sent back to the developer"); }
-  if (act === "undo-decision") { state.decision = null; renderBudgets(); }
+  if (act === "decide-change") {
+    const v = btn.dataset.v || null;
+    await projectCall("/api/budget/decision", { decision: v });
+    if (v) toast(v === "approved" ? "Approved" : "Sent back to the developer");
+  }
   if (act === "ledger-reset") {
     if (!confirm("Forget every pattern Prune has learned?")) return;
     await api("/api/ledger/reset", {});
@@ -813,12 +862,18 @@ document.addEventListener("click", async (e) => {
 document.addEventListener("change", async (e) => {
   if (e.target.id === "thresholdInput") {
     const v = Number(e.target.value);
-    if (v >= 0) { state.threshold = v; renderBudgets(); }
+    if (v >= 0) await projectCall("/api/budget/threshold", { usd: v });
     return;
   }
   if (e.target.id === "projectPick") {
-    if (e.target.value === "paste") { $("#pasteDialog").showModal(); return; }
-    loadSample(e.target.value);
+    const v = e.target.value;
+    if (v === "paste") { $("#pasteDialog").showModal(); return; }
+    if (v.startsWith("project:")) {
+      const cached = state.repos[v.slice(8)];
+      if (cached) { setProject(cached, true); render(); }
+      return;
+    }
+    loadSample(v);
     return;
   }
   if (e.target.dataset.act !== "guard") return;
@@ -857,11 +912,13 @@ def chat(history, question):
 $("#pasteExample").addEventListener("click", () => { $("#pasteCode").value = EXAMPLE; });
 $("#pasteDialog").addEventListener("close", async () => {
   if ($("#pasteDialog").returnValue !== "go" || !$("#pasteCode").value.trim()) {
-    $("#projectPick").value = state.project?.sample || state.lastSample;
+    $("#projectPick").value = state.project?.sample || (state.project ? `project:${state.project.id}` : state.lastSample);
     return;
   }
   await run("load", async () => {
-    setProject(await api("/api/load", { paste: { filename: $("#pasteName").value, code: $("#pasteCode").value, calls_per_month: $("#pasteCalls").value } }), true);
+    const proj = await api("/api/load", { paste: { filename: $("#pasteName").value, code: $("#pasteCode").value, calls_per_month: $("#pasteCalls").value } });
+    setProject(proj, true);
+    rememberProject(proj);
   });
   go("find");
 });
@@ -871,5 +928,4 @@ window.addEventListener("hashchange", () => {
   if (TABS.includes(t) && t !== state.tab) { state.tab = t; if (state.project) render(); }
 });
 state.tab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "find";
-api("/api/catalog").then((c) => { state.catalog = c; if (state.tab === "energy" && state.project) renderEnergy(); }).catch(() => {});
 loadSample("stepup");

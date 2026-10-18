@@ -33,11 +33,7 @@ def _parts(p):
 
 
 def _price(model):
-    info = catalog.model_info(model)
-    if info is None:
-        # Unknown model: price it like a mid-size model so it still ranks.
-        return (1.0, 0.5, 4.0, "medium", "unknown")
-    return info
+    return catalog.price_for(model)[0]
 
 
 def per_call_cost(model, p):

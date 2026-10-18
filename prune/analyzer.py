@@ -4,6 +4,7 @@ Pure static analysis with the standard library's `ast`. No AI is used here.
 """
 
 import ast
+import json
 import re
 from pathlib import Path
 
@@ -59,7 +60,8 @@ def kwarg(call, *names):
 class Module:
     def __init__(self, rel_path, src):
         self.path = rel_path
-        self.dotted = rel_path[:-3].replace("/", ".").removesuffix(".__init__")
+        self.dotted = re.sub(r"\.(py|ipynb)$", "", rel_path).replace("/", ".").removesuffix(".__init__")
+        self.notebook = rel_path.endswith(".ipynb")
         self.src = src
         self.lines = src.splitlines()
         self.tree = ast.parse(src)
@@ -145,17 +147,22 @@ class Project:
                 self.modules[path] = Module(path, src)
             except SyntaxError as e:
                 self.errors.append(f"{path}:{e.lineno}: {e.msg}")
+            except (ValueError, RecursionError) as e:  # null bytes, absurdly deep nesting
+                self.errors.append(f"{path}: {type(e).__name__}")
         self.by_dotted = {m.dotted: m for m in self.modules.values()}
 
     @classmethod
     def from_dir(cls, root):
         root = Path(root)
         files = {}
-        for p in root.rglob("*.py"):
+        for p in sorted(root.rglob("*")):
+            if p.suffix not in (".py", ".ipynb") or not p.is_file() or p.is_symlink():
+                continue
             rel = p.relative_to(root)
             if any(part in SKIP_DIRS for part in rel.parts):
                 continue
-            files[rel.as_posix()] = p.read_text()
+            text = p.read_text(errors="replace")
+            files[rel.as_posix()] = notebook_to_python(text) if p.suffix == ".ipynb" else text
         return cls(files)
 
     def resolve_str(self, module, node):
@@ -215,11 +222,17 @@ class Project:
     def analyze(self):
         sites = []
         for module in self.modules.values():
-            for node in ast.walk(module.tree):
-                if isinstance(node, ast.Call):
-                    kind = self.detect(module, node)
-                    if kind:
-                        sites.append(self._site(module, node, kind))
+            calls = [n for n in ast.walk(module.tree) if isinstance(n, ast.Call)]
+            for node in sorted(calls, key=lambda n: (n.lineno, n.col_offset)):
+                kind = self.detect(module, node)
+                if kind:
+                    sites.append(self._site(module, node, kind))
+        # Two AI calls in one function: the first keeps file::function, later ones get @line.
+        seen = set()
+        for s in sites:
+            if s["id"] in seen:
+                s["id"] = f"{s['id']}@{s['line']}"
+            seen.add(s["id"])
         self._project_context(sites)
         return sites
 
@@ -571,5 +584,22 @@ class Project:
 
 
 def size_class(model):
-    info = catalog.model_info(model or "")
-    return info[3] if info else "unknown"
+    return catalog.price_for(model)[0][3]
+
+
+def notebook_to_python(text):
+    """Code cells of a Jupyter notebook as one Python source. Shell and magic lines are
+    commented out so the file parses; nothing is executed."""
+    try:
+        nb = json.loads(text)
+    except json.JSONDecodeError:
+        return ""
+    cells = []
+    for cell in nb.get("cells", []):
+        if cell.get("cell_type") != "code":
+            continue
+        src = cell.get("source", "")
+        src = "".join(src) if isinstance(src, list) else src
+        lines = [("# " + l) if l.lstrip().startswith(("%", "!")) else l for l in src.splitlines()]
+        cells.append("\n".join(lines))
+    return "\n\n".join(cells) + "\n"

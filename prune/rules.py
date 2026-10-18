@@ -24,7 +24,7 @@ EST_HISTORY_KEEP_SHARE = 0.4  # share of history tokens left after trimming to t
 MAX_AGENT_STEPS = 8
 
 
-def baseline_profile(site, usage_rec, usage_source, override, default_calls):
+def baseline_profile(site, usage_rec, usage_source, override, default_calls, calls_override=None):
     if override:
         p = copy.deepcopy(override)
         p["source"] = "projected after the accepted fix"
@@ -46,9 +46,11 @@ def baseline_profile(site, usage_rec, usage_source, override, default_calls):
         out = min(site["max_tokens"] or 20, 20)
     else:
         out = min(site["max_tokens"] or 300, 300)
+    calls = calls_override or default_calls
+    who = "set by you" if calls_override else "default"
     return costing.make_profile(
-        model, default_calls, inp, out, estimate=True,
-        source=f"estimate: {default_calls:,} calls/month entered by you, tokens estimated from the prompt",
+        model, calls, inp, out, estimate=True,
+        source=f"estimate: {int(calls):,} calls a month ({who}), tokens estimated from the prompt",
     )
 
 
@@ -73,7 +75,8 @@ def _line(module, n):
 def build_group(site, module, modules, ctx):
     """ctx: usage, usage_source, overrides, ledger, options, default_calls."""
     u = ctx["usage"].get(site["id"], {})
-    before = baseline_profile(site, u, ctx["usage_source"], ctx["overrides"].get(site["id"]), ctx["default_calls"])
+    before = baseline_profile(site, u, ctx["usage_source"], ctx["overrides"].get(site["id"]), ctx["default_calls"],
+                              ctx.get("traffic", {}).get(site["id"]))
     opts = ctx["options"].get(site["id"], {})
     model = before["model"]
     answer = site["answer"]
@@ -81,6 +84,12 @@ def build_group(site, module, modules, ctx):
     recorded = u.get("recorded_requests", 0)
 
     def add(rule, title, detail, kind, proof, ops, transform, lines, bullet, included=True, note=None, estimate=False):
+        if included and ctx.get("linked") and kind == "code_change":
+            included, proof = False, "advice"
+            note = "Prune never runs code it downloads, so changes that need your tests stay as advice for linked repos."
+        if included and site["file"].endswith(".ipynb"):
+            included, proof = False, "advice"
+            note = "This is a notebook, so the change is shown as advice. Copy it into the cell by hand."
         findings.append({
             "rule": rule, "title": title, "detail": detail, "fix_kind": kind, "fix_kind_label": FIX_KINDS[kind],
             "proof": proof, "ops": ops, "transform": transform, "lines": lines, "bullet": bullet,
@@ -328,13 +337,16 @@ def build_group(site, module, modules, ctx):
             f["saved_usd"] = round(costing.monthly_cost(after) - costing.monthly_cost(p), 2)
             f["transform"](advice_profile)
 
-    ops_by_file = {}
+    ops_by_file, advice_ops_by_file = {}, {}
     for f in findings:
-        if f["included"]:
-            for file, op in f["ops"]:
-                if op:
-                    ops_by_file.setdefault(file, []).append(op)
+        target = ops_by_file if f["included"] else advice_ops_by_file
+        for file, op in f["ops"]:
+            if op:
+                target.setdefault(file, []).append(op)
     findings.sort(key=lambda f: (not f["included"], -f["saved_usd"]))
+    replay = opts.get("replay") or {}
+    for f in findings:
+        f["badge"] = badge_for(f, replay)
     for f in findings:
         f.pop("transform")
         f["ops"] = [op for _, op in f["ops"] if op]
@@ -349,14 +361,35 @@ def build_group(site, module, modules, ctx):
         "site": site,
         "findings": findings,
         "ops_by_file": ops_by_file,
+        "advice_ops_by_file": advice_ops_by_file,
         "before": before,
         "after": after,
         "summary": costing.summarize(before, after),
         "advice_extra_usd": round(costing.monthly_cost(after) - costing.monthly_cost(advice_profile), 2),
+        "advice_summary": costing.summarize(after, advice_profile),
         "needs_replay": any(f["included"] and f["proof"] == "replay" for f in findings),
         "recorded_requests": recorded,
         "has_edits": bool(ops_by_file),
     }
+
+
+def badge_for(f, replay):
+    """The proof badge for one change, from what kind of change it is and what proved it.
+
+    Same answer: the answer can't change (caching, duplicates, length caps), tests suffice.
+    Checked: a smaller model or less context, proven by replay or by the ledger.
+    Advice only: anything Prune won't apply on its own.
+    """
+    if not f["included"]:
+        return {"kind": "advice", "label": "Advice only", "detail": ""}
+    if f["fix_kind"] in ("model_change", "less_context"):
+        if f["proof"] == "ledger" and f.get("ledger"):
+            ev = f["ledger"]
+            return {"kind": "checked", "label": "Checked", "detail": f"{ev['matched']:,}/{ev['total']:,} from memory"}
+        if replay.get("decision") == "accepted":
+            return {"kind": "checked", "label": "Checked", "detail": f"{replay['matched']:,}/{replay['total']:,}"}
+        return {"kind": "pending", "label": "Check pending", "detail": ""}
+    return {"kind": "same", "label": "Same answer", "detail": ""}
 
 
 def apply_group(group, sources):
