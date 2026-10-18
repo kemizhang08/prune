@@ -4,67 +4,62 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Prune</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M16 29V14' stroke='%232f7d4f' stroke-width='3' stroke-linecap='round'/><path d='M16 15c0-7 5-11 12-11 0 7-5 11-12 11zM16 19C16 13 12 9 5 9c0 6 4 10 11 10z' fill='%232f7d4f'/></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='15' fill='%230b0910'/><path d='M16 26V14' stroke='%23c4b5fd' stroke-width='2.4' stroke-linecap='round'/><path d='M16 15c0-6 4-9 9-9 0 6-4 9-9 9zM16 18c0-5-3-8-8-8 0 5 3 8 8 8z' fill='%238b5cf6'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="gPurple" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c4b5fd"/><stop offset="1" stop-color="#6d28d9"/></linearGradient>
+      <linearGradient id="gFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8b5cf6" stop-opacity=".55"/><stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/></linearGradient>
+      <radialGradient id="gGlow"><stop offset="0" stop-color="#a78bfa" stop-opacity=".55"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></radialGradient>
+      <radialGradient id="gOrb" cx=".35" cy=".3"><stop offset="0" stop-color="#f5f3ff"/><stop offset=".45" stop-color="#a78bfa"/><stop offset="1" stop-color="#3b1a78"/></radialGradient>
+    </defs>
+  </svg>
+
   <header class="top">
-    <div class="brand">
-      <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path d="M16 29V14" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M16 15c0-7 5-11 12-11 0 7-5 11-12 11zM16 19C16 13 12 9 5 9c0 6 4 10 11 10z" fill="currentColor"/></svg>
-      <div>
-        <div class="brand-name">Prune</div>
-        <div class="brand-tag">A spell-checker for AI spending</div>
-      </div>
-    </div>
-    <nav class="projects" id="projectTabs" aria-label="Project">
-      <button data-sample="stepup">StepUp Shoes <span class="muted">sample</span></button>
-      <button data-sample="bank">Northwind Bank <span class="muted">sample</span></button>
-      <button data-paste>Paste code</button>
+    <a class="brand" href="#home" data-tab="home">
+      <svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M16 27V14" stroke="#c4b5fd" stroke-width="2.4" stroke-linecap="round"/><path d="M16 15c0-6 4-9 9-9 0 6-4 9-9 9zM16 18c0-5-3-8-8-8 0 5 3 8 8 8z" fill="url(#gPurple)"/></svg>
+      <span>Prune</span>
+    </a>
+    <nav class="tabs" id="tabs" aria-label="Sections">
+      <button data-tab="home" class="active"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Home</span></button>
+      <button data-tab="fixes"><svg viewBox="0 0 24 24"><path d="M6 20c0-7 4-12 12-14-1 8-6 12-12 14zM6 20l6-6"/></svg><span>Fixes</span><i class="badge" id="fixCount"></i></button>
+      <button data-tab="check"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg><span>Check code</span></button>
+      <button data-tab="limits"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 12l4-3"/></svg><span>Limits</span></button>
+      <button data-tab="learned"><svg viewBox="0 0 24 24"><path d="M5 5h10l4 4v10H5z"/><path d="M9 12h6M9 16h4"/></svg><span>Learned</span></button>
     </nav>
+    <div class="project">
+      <select id="projectPick" aria-label="Project">
+        <option value="stepup">StepUp Shoes</option>
+        <option value="bank">Northwind Bank</option>
+        <option value="paste">Your own code…</option>
+      </select>
+    </div>
   </header>
 
-  <section class="meters" id="meters" aria-live="polite"></section>
-
-  <main class="layout">
-    <aside class="side">
-      <div class="panel">
-        <div class="panel-head"><h2>Findings</h2><span class="muted small" id="findingsMeta"></span></div>
-        <div id="findings" class="findings"></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><h2>All AI calls</h2><span class="muted small">by monthly cost</span></div>
-        <div id="sites"></div>
-      </div>
-    </aside>
-    <section class="detail" id="detail">
-      <div class="empty">Load a project to start a review.</div>
-    </section>
+  <main>
+    <section class="view active" id="view-home"></section>
+    <section class="view" id="view-fixes"></section>
+    <section class="view" id="view-check"></section>
+    <section class="view" id="view-limits"></section>
+    <section class="view" id="view-learned"></section>
   </main>
-
-  <section class="lower">
-    <div class="panel" id="budgetPanel"></div>
-    <div class="panel" id="incomingPanel"></div>
-    <div class="panel" id="ledgerPanel"></div>
-  </section>
-
-  <footer class="foot">
-    <span id="sourceNote"></span>
-    <span>Energy is a range (per-1k-token figures by model size, cited sources) · Carbon = energy × grid intensity 0.25–0.45 kg/kWh · Chalk sandboxes, AI Gateway and Federated Queries are stubbed behind interfaces in this build.</span>
-  </footer>
 
   <dialog id="pasteDialog">
     <form method="dialog" class="paste">
-      <h2>Review your own code</h2>
-      <p class="muted">Python. Prune finds OpenAI-style, Anthropic, Gemini, LiteLLM and LangChain calls. With no usage data, traffic is your estimate and is labelled as one.</p>
+      <h2>Bring your own code</h2>
+      <textarea id="pasteCode" spellcheck="false" placeholder="Paste Python code here"></textarea>
       <div class="row">
-        <label>File name <input id="pasteName" value="app.py"></label>
-        <label>Calls per month (estimate) <input id="pasteCalls" type="number" min="1" value="25000"></label>
-        <button type="button" class="ghost" id="pasteExample">Insert example</button>
+        <label>Times it runs per month <input id="pasteCalls" type="number" min="1" value="25000"></label>
+        <input id="pasteName" type="hidden" value="app.py">
+        <button type="button" class="ghost" id="pasteExample">Use an example</button>
       </div>
-      <textarea id="pasteCode" spellcheck="false" placeholder="Paste Python code that calls an AI model…"></textarea>
       <div class="row end">
         <button value="cancel" class="ghost">Cancel</button>
-        <button id="pasteGo" value="go" class="primary">Review code</button>
+        <button id="pasteGo" value="go" class="primary">Look for savings</button>
       </div>
     </form>
   </dialog>

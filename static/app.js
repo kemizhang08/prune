@@ -2,25 +2,44 @@
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const usd = (x) => (Math.abs(x) >= 100 ? "$" + Math.round(x).toLocaleString() : "$" + Number(x).toFixed(2));
+const usd = (x) => "$" + (Math.abs(x) >= 100 ? Math.round(x).toLocaleString() : (Math.round(x * 100) / 100).toLocaleString());
 const about = (x) => "$" + (x >= 100 ? Math.round(x / 10) * 10 : Math.round(x)).toLocaleString();
-const rng = (r, d = 0) => `${Number(r[0]).toFixed(d)}–${Number(r[1]).toFixed(d)}`;
 const int = (x) => Math.round(x).toLocaleString();
+const rng = (r) => `${Math.round(r[0])}–${Math.round(r[1])}`;
+const mid = (r) => (r[0] + r[1]) / 2;
 
-const RULE_LABEL = {
-  model_too_big: "model too big",
-  plain_code: "plain code could do it",
-  uncached_prompt: "uncached prompt",
-  max_tokens_high: "answer limit too high",
-  full_history: "full history resent",
-  timer: "timer-triggered",
-  batchable: "batchable",
-  retry_storm: "retry storm",
-  duplicate_call: "duplicate calls",
-  agent_unbounded: "agent without limits",
+// ---------- plain-language names ----------
+
+const NAMES = {
+  classify_ticket: "Sorting support emails",
+  extract_order_id: "Finding order numbers",
+  answer_question: "Website chat helper",
+  summarize_review: "Product review summaries",
+  summarize: "Ticket summaries",
+  run_returns_agent: "Returns assistant",
+  categorize_transaction: "Sorting card payments",
+  is_urgent: "Spotting urgent tickets",
+  chat: "Chat replies",
+  product_blurb: "Product page blurbs",
+};
+const friendly = (fn) => NAMES[fn] || fn.replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+
+const PLAIN = {
+  model_too_big: "Uses a big, pricey AI model for a simple choice",
+  plain_code: "Uses AI for something a simple rule can do for free",
+  uncached_prompt: "Sends the same long instructions every time instead of reusing them",
+  max_tokens_high: "Lets the AI write far more than anyone reads",
+  full_history: "Resends the whole conversation on every message",
+  timer: "Repeats the same work over and over on a timer",
+  batchable: "Could run in bulk during cleaner, off-peak hours",
+  retry_storm: "Retries instantly and endlessly when something fails",
+  duplicate_call: "Asks the AI the same question twice",
+  agent_unbounded: "Lets an AI assistant keep going with no step limit",
 };
 
-const state = { project: null, selected: null, busy: null, ledger: [], meterShown: null, review: null };
+// ---------- state ----------
+
+const state = { project: null, initialSites: {}, selected: null, busy: null, ledger: [], tab: "home", review: null, applied: null, lastSample: "stepup" };
 
 async function api(path, body) {
   const res = await fetch(path, body === undefined ? {} : {
@@ -36,7 +55,7 @@ function toast(msg) {
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(toast._t);
-  toast._t = setTimeout(() => t.classList.remove("show"), 3200);
+  toast._t = setTimeout(() => t.classList.remove("show"), 3400);
 }
 
 async function run(label, fn) {
@@ -47,393 +66,509 @@ async function run(label, fn) {
   render();
 }
 
-// ---------- loading ----------
-
-async function loadSample(sample) {
-  await run("load", async () => {
-    setProject(await api("/api/load", { sample }));
+function setProject(p, fresh) {
+  state.project = p;
+  if (fresh) {
+    state.initialSites = Object.fromEntries(p.sites.map((s) => [s.id, s]));
     state.review = null;
-    state.selected = state.project.groups[0]?.id || null;
-    document.querySelectorAll("#projectTabs button").forEach((b) => b.classList.toggle("active", b.dataset.sample === sample));
-  });
-  refreshLedger();
+    state.applied = null;
+    state.selected = p.groups.find((g) => g.has_edits)?.id || p.groups[0]?.id || null;
+  }
 }
 
-function setProject(p) {
-  const prev = state.project;
-  state.project = p;
-  if (prev && prev.id === p.id) animateMeters(prev.totals, p.totals);
-  else state.meterShown = { ...p.totals };
+async function loadSample(sample) {
+  state.lastSample = sample;
+  $("#projectPick").value = sample;
+  await run("load", async () => setProject(await api("/api/load", { sample }), true));
+  refreshLedger();
 }
 
 async function refreshLedger() {
   try { state.ledger = (await api("/api/ledger")).entries; } catch (e) { /* ignore */ }
-  renderLedger();
+  if (state.tab === "learned") renderLearned();
 }
 
-// ---------- meters ----------
-
-function animateMeters(from, to) {
-  if (from.cost === to.cost) { state.meterShown = { ...to }; return; }
-  const t0 = performance.now(), dur = 1400;
-  document.querySelectorAll(".meter").forEach((m) => m.classList.add("flash"));
-  setTimeout(() => document.querySelectorAll(".meter").forEach((m) => m.classList.remove("flash")), 1500);
-  const lerp = (a, b, k) => a + (b - a) * k;
-  const step = (now) => {
-    const k = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - k, 3);
-    state.meterShown = {
-      cost: lerp(from.cost, to.cost, e),
-      kwh: [lerp(from.kwh[0], to.kwh[0], e), lerp(from.kwh[1], to.kwh[1], e)],
-      kg_co2e: [lerp(from.kg_co2e[0], to.kg_co2e[0], e), lerp(from.kg_co2e[1], to.kg_co2e[1], e)],
-    };
-    renderMeters();
-    if (k < 1) requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
+function hash(str) {
+  let h = 2166136261;
+  for (const c of str) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return h >>> 0;
+}
+function rand(seed) {
+  let s = seed || 1;
+  return () => ((s = Math.imul(s ^ (s >>> 15), 2246822507) ^ Math.imul(s ^ (s >>> 13), 3266489909)) >>> 0) / 4294967296;
 }
 
-function renderMeters() {
+// ---------- numbers derived for the dashboard ----------
+
+function figures() {
   const p = state.project;
-  const el = $("#meters");
+  const savedUsd = Math.max(0, p.initial.cost - p.totals.cost);
+  const savedKwh = [Math.max(0, p.initial.kwh[0] - p.totals.kwh[0]), Math.max(0, p.initial.kwh[1] - p.totals.kwh[1])];
+  const savedKg = [Math.max(0, p.initial.kg_co2e[0] - p.totals.kg_co2e[0]), Math.max(0, p.initial.kg_co2e[1] - p.totals.kg_co2e[1])];
+  const ready = p.groups.filter((g) => g.has_edits);
+  const readyUsd = ready.reduce((a, g) => a + g.summary.saved_usd, 0);
+  const readyKwh = [0, 1].map((i) => ready.reduce((a, g) => a + g.summary.saved_kwh[i], 0));
+  const readyKg = [0, 1].map((i) => ready.reduce((a, g) => a + g.summary.saved_kg_co2e[i], 0));
+  const done = savedUsd > 0.5;
+  return {
+    done, savedUsd, ready, readyUsd,
+    heroUsd: done ? savedUsd : readyUsd,
+    kwh: done ? savedKwh : readyKwh,
+    kg: done ? savedKg : readyKg,
+    initialKwh: p.initial.kwh,
+  };
+}
+
+// ---------- art ----------
+
+function treeArt() {
+  const p = state.project;
+  const now = Object.fromEntries(p.sites.map((s) => [s.id, s.cost]));
+  const ids = Object.keys(state.initialSites);
+  const max = Math.max(1, ...ids.map((id) => state.initialSites[id].cost));
+  const W = 600, H = 300, cx = W / 2;
+  let out = `<svg class="tree" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+    <ellipse cx="${cx}" cy="${H - 6}" rx="260" ry="26" fill="url(#gGlow)"/>`;
+  const order = ids.slice().sort((a, b) => hash(a) - hash(b));
+  const n = order.length;
+  out += `<path d="M${cx} ${H} C ${cx - 6} ${H - 60}, ${cx + 6} ${H - 110}, ${cx} ${H - 160}" stroke="#d8ccff" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+  order.forEach((id, i) => {
+    const r = rand(hash(id));
+    const c0 = state.initialSites[id].cost, c1 = now[id] ?? 0;
+    const frac = c0 > 0 ? Math.min(1, c1 / c0) : 1;
+    const angle = (-78 + (156 * (i + 0.5)) / n) * Math.PI / 180;
+    const len = 90 + 170 * Math.sqrt(c0 / max);
+    const by = H - 80 - (i % 3) * 28 - r() * 12;
+    const bx = cx;
+    const ex = bx + Math.sin(angle) * len * 1.1, ey = by - Math.cos(angle) * len * 0.75;
+    const qx = bx + Math.sin(angle) * len * 0.35 + (r() - .5) * 30, qy = by - len * 0.55;
+    const at = (t) => [(1 - t) ** 2 * bx + 2 * (1 - t) * t * qx + t * t * ex, (1 - t) ** 2 * by + 2 * (1 - t) * t * qy + t * t * ey];
+    const sw = 1.5 + 4 * Math.sqrt(c0 / max);
+    const name = friendly(state.initialSites[id].function);
+    out += `<g><title>${esc(name)}: ${usd(c1)} a month now${c1 < c0 ? `, was ${usd(c0)}` : ""}</title>`;
+    out += `<path d="M${bx} ${by} Q ${qx} ${qy} ${ex} ${ey}" stroke="#3a3150" stroke-width="${sw}" fill="none" stroke-dasharray="2 6" stroke-linecap="round"/>`;
+    if (frac > 0.02) {
+      const steps = 24, pts = [];
+      for (let k = 0; k <= steps; k++) pts.push(at((k / steps) * frac));
+      out += `<path d="M${pts.map((q) => q.map((v) => v.toFixed(1)).join(" ")).join(" L")}" stroke="#d8ccff" stroke-width="${sw}" fill="none" stroke-linecap="round"/>`;
+      const leaves = 2 + Math.round(10 * frac * Math.sqrt(c0 / max) + r() * 3);
+      for (let k = 0; k < leaves; k++) {
+        const t = (0.35 + 0.65 * r()) * frac;
+        const [lx, ly] = at(t);
+        const rot = (angle * 180 / Math.PI) + (r() - .5) * 120;
+        const s = 5 + r() * 7 * Math.sqrt(c0 / max) + 3;
+        out += `<ellipse cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" rx="${s.toFixed(1)}" ry="${(s * 0.45).toFixed(1)}" transform="rotate(${rot.toFixed(0)} ${lx.toFixed(1)} ${ly.toFixed(1)})" fill="url(#gPurple)" opacity="${(.65 + r() * .35).toFixed(2)}"/>`;
+      }
+    }
+    if (frac < 0.98) {
+      const [kx, ky] = at(Math.max(frac, 0.04));
+      out += `<circle cx="${kx.toFixed(1)}" cy="${ky.toFixed(1)}" r="3.5" fill="#fff"/>`;
+      for (let k = 0; k < 3; k++) {
+        out += `<ellipse class="fall" style="--dx:${((r() - .5) * 80).toFixed(0)}px;animation-delay:${(k * 1.1 + r()).toFixed(2)}s" cx="${kx.toFixed(1)}" cy="${(ky + 6).toFixed(1)}" rx="6" ry="2.6" fill="#f5f3ff"/>`;
+      }
+    }
+    out += `</g>`;
+  });
+  return out + `</svg>`;
+}
+
+function orbArt(share) {
+  const R = 54, C = 2 * Math.PI * 64;
+  const dash = Math.max(0.001, Math.min(1, share)) * C;
+  return `<svg class="orb breathe" viewBox="0 0 150 150" aria-hidden="true">
+    <circle cx="75" cy="75" r="72" fill="url(#gGlow)"/>
+    <circle cx="75" cy="75" r="64" fill="none" stroke="#2a2438" stroke-width="3"/>
+    <circle cx="75" cy="75" r="64" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"
+      stroke-dasharray="${dash.toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 75 75)"/>
+    <circle cx="75" cy="75" r="${R - 12}" fill="url(#gOrb)"/>
+    <path d="M60 64 q8 -14 20 -6" stroke="#fff" stroke-opacity=".6" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <circle cx="${(75 + 64 * Math.sin(share * 2 * Math.PI)).toFixed(1)}" cy="${(75 - 64 * Math.cos(share * 2 * Math.PI)).toFixed(1)}" r="5" fill="#fff"/>
+  </svg>`;
+}
+
+function skyArt(kg) {
+  const count = Math.max(4, Math.min(26, Math.round(mid(kg) / 2)));
+  const r = rand(7);
+  let bubbles = "";
+  for (let i = 0; i < count; i++) {
+    const x = 20 + r() * 560, y = 70 + r() * 40, s = 2 + r() * 5;
+    bubbles += `<circle class="bubble" style="animation-delay:${(r() * 6).toFixed(2)}s;animation-duration:${(5 + r() * 4).toFixed(1)}s" cx="${x.toFixed(0)}" cy="${y.toFixed(0)}" r="${s.toFixed(1)}" fill="none" stroke="#c4b5fd" stroke-width="1.2"/>`;
+  }
+  return `<svg viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden="true">
+    ${bubbles}
+    <path d="M0 80 C 90 50, 170 95, 260 70 S 430 40, 600 72 V120 H0z" fill="#2a1d4a"/>
+    <path d="M0 95 C 120 75, 200 110, 320 92 S 500 78, 600 98 V120 H0z" fill="#4c1d95" opacity=".85"/>
+    <path d="M0 108 C 140 98, 260 118, 380 106 S 540 100, 600 110 V120 H0z" fill="#8b5cf6" opacity=".7"/>
+  </svg>`;
+}
+
+function mosaic(items) {
+  const total = items.reduce((a, b) => a + b.cost, 0) || 1;
+  const tiles = [];
+  const shades = ["#7c3aed", "#9b6dff", "#5b21b6", "#b9a2ff", "#4c1d95", "#d8ccff", "#3b1a78"];
+  const lay = (list, x, y, w, h, vertical) => {
+    if (!list.length) return;
+    if (list.length === 1) { tiles.push({ ...list[0], x, y, w, h }); return; }
+    const sum = list.reduce((a, b) => a + b.cost, 0);
+    const share = list[0].cost / sum;
+    if (vertical) { tiles.push({ ...list[0], x, y, w: w * share, h }); lay(list.slice(1), x + w * share, y, w * (1 - share), h, !vertical); }
+    else { tiles.push({ ...list[0], x, y, w, h: h * share }); lay(list.slice(1), x, y + h * share, w, h * (1 - share), !vertical); }
+  };
+  lay(items.filter((i) => i.cost > 0).sort((a, b) => b.cost - a.cost), 0, 0, 100, 100, true);
+  return `<div class="mosaic" style="position:relative;display:block">${tiles.map((t, i) => {
+    const bg = shades[i % shades.length];
+    const light = ["#b9a2ff", "#d8ccff"].includes(bg);
+    const small = t.w < 14 || t.h < 26;
+    return `<button class="tile" data-open="${esc(t.groupId || "")}" title="${esc(friendly(t.function))}: ${usd(t.cost)} a month"
+      style="position:absolute;left:calc(${t.x}% + 3px);top:calc(${t.y}% + 3px);width:calc(${t.w}% - 6px);height:calc(${t.h}% - 6px);background:${bg};color:${light ? "#120d1c" : "#fff"}">
+      ${small ? "" : `<span class="n">${esc(friendly(t.function))}</span><span class="v">${usd(t.cost)}</span>`}</button>`;
+  }).join("")}</div><div class="muted" style="font-size:13px;margin-top:10px">${usd(total)} a month in total</div>`;
+}
+
+function leafGlyph(seed, dim) {
+  const r = rand(hash(seed));
+  const a = 20 + r() * 40, b = 8 + r() * 6;
+  return `<svg class="glyph" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="21" fill="${dim ? "#1b1726" : "rgba(139,92,246,.14)"}"/>
+    <path d="M14 32 C ${14 + b} ${32 - a / 2}, ${24 + b} 14, 32 12 C 31 ${18 + b}, 26 30, 14 32z" fill="${dim ? "#5f586f" : "url(#gPurple)"}"/>
+    <path d="M14 32 L 28 17" stroke="#120d1c" stroke-width="1.2" opacity=".5"/></svg>`;
+}
+
+function fallingLeavesArt() {
+  const r = rand(11);
+  let s = "";
+  for (let i = 0; i < 9; i++) {
+    const x = 30 + r() * 160;
+    s += `<ellipse class="fall" style="--dx:${((r() - .5) * 60).toFixed(0)}px;animation-delay:${(r() * 3).toFixed(2)}s" cx="${x.toFixed(0)}" cy="${(10 + r() * 30).toFixed(0)}" rx="8" ry="3.5" fill="${i % 3 ? "url(#gPurple)" : "#fff"}"/>`;
+  }
+  return `<svg viewBox="0 0 220 160" aria-hidden="true">${s}<ellipse cx="110" cy="150" rx="90" ry="10" fill="url(#gGlow)"/></svg>`;
+}
+
+function gaugeArt(value, limit) {
+  const max = Math.max(limit * 4, value * 1.15, 1);
+  const ang = (v) => Math.PI * (1 - Math.min(v, max) / max);
+  const pt = (a, rr) => [110 + rr * Math.cos(a), 120 - rr * Math.sin(a)];
+  const [lx, ly] = pt(ang(limit), 90);
+  const [nx, ny] = pt(ang(value), 74);
+  return `<svg viewBox="0 0 220 140" aria-hidden="true">
+    <path d="M20 120 A90 90 0 0 1 200 120" fill="none" stroke="#2a2438" stroke-width="14" stroke-linecap="round"/>
+    <path d="M20 120 A90 90 0 0 1 ${pt(ang(value), 90).map((v) => v.toFixed(1)).join(" ")}" fill="none" stroke="url(#gPurple)" stroke-width="14" stroke-linecap="round"/>
+    <line x1="${lx.toFixed(1)}" y1="${(ly - 12).toFixed(1)}" x2="${lx.toFixed(1)}" y2="${(ly + 12).toFixed(1)}" stroke="#fff" stroke-width="3" transform="rotate(${(90 - ang(limit) * 180 / Math.PI).toFixed(1)} ${lx.toFixed(1)} ${ly.toFixed(1)})"/>
+    <line x1="110" y1="120" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="110" cy="120" r="7" fill="#fff"/>
+  </svg>`;
+}
+
+function ringArt(cost, budget) {
+  const C = 2 * Math.PI * 54, share = budget ? cost / budget : 0;
+  const first = Math.min(1, share), over = Math.max(0, Math.min(1, share - 1));
+  return `<svg viewBox="0 0 140 140" aria-hidden="true">
+    <circle cx="70" cy="70" r="54" fill="none" stroke="#2a2438" stroke-width="12"/>
+    <circle cx="70" cy="70" r="54" fill="none" stroke="url(#gPurple)" stroke-width="12" stroke-linecap="round" stroke-dasharray="${(first * C).toFixed(1)} ${C}" transform="rotate(-90 70 70)"/>
+    ${over ? `<circle cx="70" cy="70" r="40" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(over * 2 * Math.PI * 40).toFixed(1)} 999" transform="rotate(-90 70 70)"/>` : ""}
+    <text x="70" y="68" text-anchor="middle" fill="#f6f4fb" font-family="Instrument Serif, serif" font-size="26">${usd(cost)}</text>
+    <text x="70" y="88" text-anchor="middle" fill="#9a93ac" font-family="Manrope, sans-serif" font-size="11">of ${usd(budget)}</text>
+  </svg>`;
+}
+
+function sproutArt() {
+  return `<svg viewBox="0 0 260 160" aria-hidden="true">
+    <ellipse cx="130" cy="140" rx="100" ry="14" fill="url(#gGlow)"/>
+    <path d="M60 140 Q130 120 200 140" stroke="#4c1d95" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M130 136 C 128 110, 132 90, 130 70" stroke="#d8ccff" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path class="breathe" d="M130 84 C 108 82, 96 64, 98 50 C 116 52, 128 66, 130 84z" fill="url(#gPurple)"/>
+    <path class="breathe" d="M130 74 C 150 70, 164 52, 162 38 C 144 42, 132 56, 130 74z" fill="url(#gPurple)"/>
+  </svg>`;
+}
+
+// ---------- views ----------
+
+function renderHome() {
+  const el = $("#view-home");
+  const p = state.project;
   if (!p) { el.innerHTML = ""; return; }
-  const m = state.meterShown || p.totals, init = p.initial;
-  const savedUsd = init.cost - m.cost;
-  const savedKwh = [init.kwh[0] - m.kwh[0], init.kwh[1] - m.kwh[1]];
-  const r = p.receipt;
+  const f = figures();
+  const share = f.initialKwh[1] ? Math.min(1, mid(f.kwh) / mid(f.initialKwh)) : 0;
+  const phones = Math.round(mid(f.kwh) / 0.015);
+  const km = Math.round(mid(f.kg) / 0.17);
+  const groupBySite = Object.fromEntries(p.groups.map((g) => [g.id, g.id]));
+  const allApplied = p.totals.cost - f.readyUsd;
   el.innerHTML = `
-    <div class="meter"><div class="label"><span>AI spend · ${esc(p.name)}</span><span>per month</span></div>
-      <div class="value">${usd(m.cost)}</div>
-      <div class="sub">${savedUsd > 0.5 ? `<span class="down">▼ ${usd(savedUsd)}</span> from ${usd(init.cost)}` : `${p.sites.length} AI calls found`}</div></div>
-    <div class="meter"><div class="label"><span>Energy</span><span>kWh / month</span></div>
-      <div class="value">${rng(m.kwh)}<span class="unit">kWh</span></div>
-      <div class="sub">${savedKwh[1] > 0.05 ? `<span class="down">▼ ${rng(savedKwh)} kWh</span>` : "estimated range"}</div></div>
-    <div class="meter"><div class="label"><span>Carbon</span><span>kg CO₂e / month</span></div>
-      <div class="value">${rng(m.kg_co2e)}<span class="unit">kg</span></div>
-      <div class="sub">energy × grid intensity</div></div>
-    <div class="meter saved"><div class="label"><span>Waste found</span><span>this review</span></div>
-      <div class="value">${usd(r.waste_found_usd)}<span class="unit">/mo</span></div>
-      <div class="sub">Prune's own cost: ${usd(r.analysis_usd)} analysis + ${usd(r.replay_usd)} replay</div></div>`;
+    <div class="hero">
+      <div class="card money">
+        <div class="label">${f.done ? "Saved every month" : "You could save every month"}</div>
+        <div class="big-num">${usd(f.heroUsd)}<small>/ month</small></div>
+        <div class="sub">${f.done ? `From <b>${usd(p.initial.cost)}</b> down to <b>${usd(p.totals.cost)}</b> a month` : `Out of <b>${usd(p.totals.cost)}</b> spent on AI each month`}</div>
+        ${treeArt()}
+      </div>
+      <div class="earth">
+        <div class="card orb-card">
+          ${orbArt(share)}
+          <div><div class="label">${f.done ? "Energy saved" : "Energy you could save"}</div>
+            <div class="mid-num">${rng(f.kwh)}<small>kWh / month</small></div>
+            <div class="eq">About <b>${int(phones)}</b> phone charges every month</div></div>
+        </div>
+        <div class="card sky">
+          <div class="label">${f.done ? "Carbon avoided" : "Carbon you could avoid"}</div>
+          <div class="mid-num">${rng(f.kg)}<small>kg CO₂ / month</small></div>
+          <div class="eq">Like skipping <b>${int(km)} km</b> of driving</div>
+          ${skyArt(f.kg)}
+        </div>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="card"><div class="label">Where the money goes now</div>
+        ${mosaic(p.sites.map((s) => ({ ...s, groupId: groupBySite[s.id] })))}</div>
+      <div class="card"><div class="label">Monthly AI bill</div>
+        ${duo([["Before", p.initial.cost, "before"], ["Now", p.totals.cost, "after"], ["With every fix", allApplied, "after"]])}</div>
+    </div>
+    ${f.ready.length ? `<div class="card cta"><div><div class="serif">${f.ready.length} fix${f.ready.length === 1 ? "" : "es"} ready</div>
+      <div class="muted">Each one is checked before anything changes.</div></div>
+      <button class="primary big" data-go="fixes">See fixes</button></div>` : ""}`;
 }
 
-// ---------- side lists ----------
+function duo(cols) {
+  const max = Math.max(...cols.map((c) => c[1]), 1);
+  return `<div class="duo">${cols.map(([k, v, cls]) => `<div class="col"><div class="v">${usd(v)}</div>
+    <div class="bar ${cls}" style="height:${Math.max(4, (v / max) * 150)}px"></div><div class="k">${k}</div></div>`).join("")}</div>`;
+}
 
-function renderFindings() {
+function renderFixes() {
+  const el = $("#view-fixes");
   const p = state.project;
-  const el = $("#findings");
   if (!p) { el.innerHTML = ""; return; }
-  const open = p.groups.filter((g) => g.has_edits);
-  const adviceOnly = p.groups.filter((g) => !g.has_edits);
-  $("#findingsMeta").textContent = `${open.length} fix${open.length === 1 ? "" : "es"} · ${usd(p.open_savings)}/mo`;
-  const card = (g) => {
-    const rules = g.findings.map((f) => `<span class="chip ${f.included ? "amber" : ""}">${esc(RULE_LABEL[f.rule])}</span>`).join("");
-    return `<button class="finding ${state.selected === g.id ? "active" : ""}" data-select="${esc(g.id)}">
-      <span class="fn">${esc(g.function)}()</span>
-      <span class="usd">${g.has_edits ? usd(g.summary.saved_usd) : `<span class="muted small">advice</span>`}</span>
-      <span class="loc">${esc(g.file)}:${g.line} · ${esc(g.model || "")}</span>
-      <span class="chips">${rules}</span></button>`;
-  };
-  const done = p.accepted.map((a) => `<button class="finding done ${state.selected === "accepted:" + a.id ? "active" : ""}" data-select="accepted:${esc(a.id)}">
-      <span class="fn">${esc(a.function)}()</span><span class="usd">−${usd(a.saved_usd)}</span>
-      <span class="loc">Accepted</span><span class="chips"><span class="chip green">✓ shipped</span></span></button>`);
-  el.innerHTML = [...open.map(card), ...adviceOnly.map(card), ...done].join("") ||
-    `<div class="muted">No AI calls found${p.parse_errors.length ? ": " + esc(p.parse_errors.join("; ")) : "."}</div>`;
+  const open = p.groups.filter((g) => g.has_edits), tips = p.groups.filter((g) => !g.has_edits);
+  const item = (g, done) => `<button class="fix-item ${state.selected === g.id ? "active" : ""} ${done ? "done" : ""}" data-select="${esc(g.id)}">
+      ${leafGlyph(g.id, done || !g.has_edits)}
+      <span><div class="name">${esc(friendly(g.function))}</div><div class="meta">${done ? "Applied" : g.has_edits ? `${rng(g.summary.saved_kwh)} kWh less a month` : "Tip"}</div></span>
+      <span class="save">${done ? "✓" : g.has_edits ? about(g.summary.saved_usd) : ""}</span></button>`;
+  const doneItems = p.accepted.map((a) => item({ id: "accepted:" + a.id, function: a.function, summary: { saved_usd: a.saved_usd, saved_kwh: a.saved_kwh }, has_edits: true }, true));
+  el.innerHTML = `<div class="fixes">
+    <div class="fix-list">${open.map((g) => item(g)).join("")}${tips.map((g) => item(g)).join("")}${doneItems.join("")}
+      ${!p.groups.length && !p.accepted.length ? `<div class="card empty-art">${sproutArt()}<p class="muted">No AI waste found here.</p></div>` : ""}</div>
+    <div class="wizard" id="wizard">${wizard()}</div></div>`;
 }
 
-function renderSites() {
+function wizard() {
   const p = state.project;
-  const el = $("#sites");
-  if (!p) { el.innerHTML = ""; return; }
-  el.innerHTML = `<table><thead><tr><th>Call</th><th class="num">Calls/mo</th><th class="num">$/mo</th></tr></thead><tbody>
-    ${p.sites.map((s) => `<tr><td><code>${esc(s.function)}</code><div class="muted small">${esc(s.model)}${s.estimate ? ' · <span class="chip amber">estimate</span>' : ""}</div></td>
-      <td class="num">${int(s.calls)}</td><td class="num">${usd(s.cost)}</td></tr>`).join("")}
-  </tbody></table>`;
-}
-
-// ---------- detail ----------
-
-function codeBlock(code, start, hits = new Set(), trace = new Set()) {
-  return `<div class="code"><pre>${code.split("\n").map((t, i) => {
-    const n = start + i;
-    const cls = hits.has(n) ? "hit" : trace.has(n) ? "traced" : "";
-    return `<div class="ln ${cls}"><span class="n">${n}</span><span class="t">${esc(t) || " "}</span></div>`;
-  }).join("")}</pre></div>`;
-}
-
-function diffBlock(diffs) {
-  const lines = Object.values(diffs).join("\n").split("\n");
-  return `<div class="code"><pre>${lines.map((t) => {
-    const cls = t.startsWith("+++") || t.startsWith("---") ? "file" : t.startsWith("@@") ? "hunk" : t.startsWith("+") ? "add" : t.startsWith("-") ? "del" : "";
-    return `<div class="ln ${cls}"><span class="t">${esc(t) || " "}</span></div>`;
-  }).join("")}</pre></div>`;
-}
-
-function step(n, title, sub, body, cls = "") {
-  return `<section class="step ${cls}"><div class="step-h"><span class="num">${cls === "ok" ? "✓" : n}</span>
-    <span class="step-title">${title}</span><span class="step-sub">${sub || ""}</span></div><div class="step-b">${body}</div></section>`;
-}
-
-function spinner(label) { return state.busy === label ? '<span class="spin"></span> ' : ""; }
-
-function modelFinding(g) { return g.findings.find((f) => f.rule === "model_too_big"); }
-
-function bulletFor(g, f) {
-  const st = g.status;
-  if (f.rule === "model_too_big") {
-    if (f.proof === "replay" && st.replay) {
-      const d = st.replay.total - st.replay.matched;
-      let s = `Smaller model: same ${g.site.answer.kind === "label" ? "label" : "answer"} on ${int(st.replay.matched)} of ${int(st.replay.total)} real requests (see the ${d} difference${d === 1 ? "" : "s"})`;
-      if (f.guard) s += `; requests mentioning ${f.guard.keywords.map((k) => `“${k}”`).join(" or ")} stay on ${esc(g.model)}`;
-      return s;
-    }
-    if (f.proof === "ledger") return `Smaller model (${esc(f.target_model)}): the ledger shows ${(f.ledger.match_rate * 100).toFixed(1)}% matches on similar tasks, so no replay needed`;
-    return `Smaller model (${esc(f.target_model)}): waiting on replay proof`;
+  if (state.selected?.startsWith("accepted:")) {
+    const a = p.accepted.find((x) => "accepted:" + x.id === state.selected);
+    if (!a) return "";
+    return `<div class="card applied">${fallingLeavesArt()}<div class="label">${esc(friendly(a.function))}</div>
+      <div class="serif">−${about(a.saved_usd)} a month</div><div class="muted">${rng(a.saved_kwh)} kWh less energy every month</div>
+      <p class="muted" style="max-width:440px;margin:18px auto 0">${a.rollout.length > 1 ? "Rolling out to a small share of people first. Prune undoes it on its own if answers get worse." : "Live for everyone. Nothing about the answers changed."}</p></div>`;
   }
-  return esc(f.bullet);
-}
-
-function renderDetail() {
-  const p = state.project;
-  const el = $("#detail");
-  if (!p) { el.innerHTML = `<div class="empty">Load a project to start a review.</div>`; return; }
-  if (state.selected?.startsWith("accepted:")) return renderAccepted(state.selected.slice(9));
   const g = p.groups.find((x) => x.id === state.selected);
-  if (!g) { el.innerHTML = `<div class="empty">${p.groups.length ? "Pick a finding on the left." : "Nothing left to fix here. Check the meters above."}</div>`; return; }
-  const st = g.status, sm = g.summary, a = g.site.answer;
-  const hits = new Set(g.findings.flatMap((f) => f.lines));
-  const trace = new Set(a.path.map((x) => x.line));
-  const mf = modelFinding(g);
+  if (!g) return `<div class="card empty-art">${sproutArt()}<p class="muted">Pick a fix on the left.</p></div>`;
+  const st = g.status, sm = g.summary;
+  const inc = g.findings.filter((f) => f.included), later = g.findings.filter((f) => !f.included);
+  const mf = g.findings.find((f) => f.rule === "model_too_big" && f.included);
+  const busy = (k) => (state.busy === k ? '<span class="spin"></span>' : "");
+  const dis = state.busy ? "disabled" : "";
 
-  // 1. find
-  const issues = g.findings.map((f) => `<div class="issue ${f.included ? "" : "excluded"}">
-      <span class="t">${esc(f.title)} <span class="chip ${f.fix_kind === "same_answer" ? "green" : f.fix_kind === "advice" ? "" : "blue"}">${esc(f.fix_kind_label)}</span>
-      ${f.estimate ? '<span class="chip amber">estimate</span>' : ""}</span>
-      <span class="usd">${f.saved_usd > 0 ? "−" + usd(f.saved_usd) + "/mo" : ""}${f.included ? "" : '<div class="muted small">not in this fix</div>'}</span>
-      <span class="d">${esc(f.detail)}</span>${f.note ? `<span class="note">${esc(f.note)}</span>` : ""}</div>`).join("");
-  const s1 = step(1, "Find the waste by reading the code", "static analysis · no AI used",
-    `${codeBlock(g.code, g.code_start, hits, trace)}
-     <ul class="trace">${a.path.map((x) => `<li><span class="l">L${x.line}</span><span><code>${esc(x.code)}</code> — ${esc(x.note)}</span></li>`).join("")}</ul>
-     <div class="callout" style="margin-top:10px"><b>How the answer is used:</b> ${esc(a.summary)}</div>
-     <div class="issues">${issues}</div>`, "ok");
-
-  // 2. traffic
-  const b = g.before;
-  const s2 = step(2, "Check how often it actually runs", b.estimate ? '<span class="chip amber">estimate</span>' : "usage data",
-    `<div class="kv">
-      <div><div class="k">Calls / month</div><div class="v">${int(b.calls)}</div></div>
-      <div><div class="k">Avg tokens in → out</div><div class="v">${int(b.input_tokens)} → ${int(b.output_tokens)}</div></div>
-      <div><div class="k">Model (as billed)</div><div class="v">${esc(b.model)}</div></div>
-      <div><div class="k">Cost / month</div><div class="v">${usd(sm.cost_before)}</div></div>
-      <div><div class="k">Energy / month</div><div class="v">${rng(sm.kwh_before, 1)} kWh</div></div>
-     </div><p class="muted small" style="margin:8px 0 0">Source: ${esc(b.source)}${g.feature ? ` · feature <b>${esc(g.feature)}</b>` : ""}</p>`, "ok");
-
-  // 3. fix
-  const s3 = step(3, "Write the fix", g.has_edits ? `${Object.keys(st.diffs).length} file(s) · exact lines` : "advice only",
-    g.has_edits ? diffBlock(st.diffs) : `<div class="callout amber">No safe automatic edit for these findings yet. See the notes in step 1.</div>`,
-    g.has_edits ? "ok" : "warn");
-
-  // 4. tests
-  let s4body, s4cls = "";
-  if (!g.has_edits) s4body = `<span class="muted">Nothing to test.</span>`;
-  else if (!st.tests) s4body = `<p style="margin:0">Prune copies the code into a sealed sandbox (API keys stripped), applies the fix and runs the project's own tests. If any test fails, the fix is dropped and stays advice only.</p>
-      <div class="actions"><button class="primary" data-act="tests" ${state.busy ? "disabled" : ""}>${spinner("tests")}Run tests in sandbox</button></div>`;
-  else {
-    const t = st.tests;
-    s4cls = t.passed ? "ok" : "bad";
-    s4body = `<div class="callout ${t.passed ? "green" : "red"}">${t.passed
-      ? `<b>${t.kind === "tests" ? `All ${t.tests_run} tests pass` : "Compiles"}</b> with the fix applied (${t.seconds}s, ${esc(t.sandbox)}).`
-      : `<b>Tests failed</b>, so Prune drops this fix and keeps it as advice.`}</div>
-      <details class="out"><summary><code>${esc(t.command)}</code></summary><pre>${esc(t.output)}</pre></details>
-      <div class="actions"><button data-act="tests" ${state.busy ? "disabled" : ""}>${spinner("tests")}Run again</button></div>`;
+  if (!g.has_edits) {
+    return `<div class="card"><div class="wiz-head"><div><div class="label">${esc(friendly(g.function))}</div><div class="serif">A tip for later</div></div></div>
+      <ul class="found" style="margin-top:18px">${later.map((f) => `<li>${esc(PLAIN[f.rule])}${f.saved_usd ? ` <span class="muted">· could save ${about(f.saved_usd)}/month</span>` : ""}</li>`).join("")}</ul>
+      <p class="muted">Prune can't prove this one is safe yet, so nothing changes automatically.</p></div>`;
   }
-  const s4 = step(4, "Test the fix", st.tests ? (st.tests.passed ? "passing" : "failing") : "", s4body, s4cls);
 
-  // 5. replay
-  let s5body, s5cls = "", s5sub = "";
-  if (!mf) { s5body = `<span class="muted">Same-answer fixes need no replay: passing tests are the proof.</span>`; s5cls = g.has_edits ? "ok" : ""; s5sub = "not needed"; }
-  else if (mf.proof === "ledger") {
-    s5cls = "ok"; s5sub = "ledger · high confidence";
-    s5body = `<div class="callout green"><b>No replay needed.</b> ${esc(mf.note)}</div>
-      <ul class="trace">${mf.ledger.lessons.map((l) => `<li><span class="l">📒</span><span><i>“${esc(l)}”</i></span></li>`).join("")}</ul>`;
-  } else if (mf.proof === "advice") {
-    s5cls = "warn"; s5sub = "advice only";
-    s5body = `<div class="callout amber">${esc(mf.note)}</div>`;
-  } else {
-    const rp = st.replay;
-    if (!rp) {
-      s5body = `<p style="margin:0">Prune re-sends ${int(g.recorded_requests)} recorded requests from last week (names and addresses removed) to both setups and compares the answers. It runs in your environment with your key; it never runs the app itself.</p>
-        <div class="actions"><button class="primary" data-act="replay" ${state.busy ? "disabled" : ""}>${spinner("replay")}Replay ${int(g.recorded_requests)} requests on ${esc(mf.target_model)}</button></div>`;
+  const testsDone = st.tests?.passed;
+  const needsCompare = !!mf && mf.proof === "replay";
+  const rp = st.replay;
+  const compareDone = !needsCompare || rp?.decision === "accepted";
+  let stage = 1;
+  if (testsDone) stage = 2;
+  if (testsDone && compareDone) stage = 3;
+
+  const s1 = `<div class="stage done"><div class="dot">✓</div><div><h3>What Prune found</h3>
+    <ul class="found">${inc.map((f) => `<li>${esc(PLAIN[f.rule])}</li>`).join("")}${later.map((f) => `<li class="later">${esc(PLAIN[f.rule])} · not part of this fix</li>`).join("")}</ul></div></div>`;
+
+  const s2 = `<div class="stage ${testsDone ? "done" : "now"}"><div class="dot">${testsDone ? "✓" : "2"}</div><div><h3>Make sure nothing breaks</h3>
+    ${st.tests ? `<div class="ok-line ${st.tests.passed ? "" : "bad"}"><span class="tick">${st.tests.passed ? "✓" : "!"}</span>
+      ${st.tests.passed ? (st.tests.kind === "tests" ? `All ${st.tests.tests_run} checks passed` : "The code still runs") : "A check failed, so this fix is off"}</div>`
+      : `<p>Prune tries the change on a copy of your project and runs your own checks.</p><button class="primary" data-act="tests" ${dis}>${busy("tests")}Run safety check</button>`}</div></div>`;
+
+  let s3 = "";
+  if (mf) {
+    let body;
+    if (mf.proof === "ledger") {
+      body = `<div class="ok-line"><span class="tick">✓</span>Prune has seen this work before</div>
+        <p style="margin-top:8px">On a similar task, ${int(mf.ledger.matched)} of ${int(mf.ledger.total)} answers stayed the same with the smaller model.</p>`;
+    } else if (!rp) {
+      body = `<p>Prune asks both the current and the cheaper AI the same ${int(g.recorded_requests)} past questions, with personal details removed, and shows you any answers that change.</p>
+        <button class="primary" data-act="replay" ${!testsDone || state.busy ? "disabled" : ""}>${busy("replay")}Compare ${int(g.recorded_requests)} past answers</button>`;
     } else {
-      const d = rp.total - rp.matched;
-      s5cls = rp.decision === "accepted" ? "ok" : rp.decision === "rejected" ? "bad" : "warn";
-      s5sub = rp.decision ? `replay ${rp.decision}` : "your call";
-      const guard = st.guard;
-      s5body = `<div class="match"><span class="big">${int(rp.matched)} / ${int(rp.total)}</span><span>get the same ${a.kind === "label" ? "label" : "answer"} on ${esc(rp.new_model)} (${(rp.match_rate * 100).toFixed(1)}%)</span></div>
-        <div class="bar"><i style="width:${rp.match_rate * 100}%"></i></div>
-        <div class="replay-table"><table><thead><tr><th>#</th><th>Request (redacted)</th><th>${esc(rp.old_model)}</th><th>${esc(rp.new_model)}</th></tr></thead><tbody>
-        ${rp.rows.map((r) => `<tr class="${r.same ? "" : "diff"}"><td class="muted">${r.id}</td><td class="in">${esc(r.input)}</td><td><b>${esc(r.before)}</b></td><td><b>${esc(r.after)}</b>${r.same ? "" : " ⚠"}</td></tr>`).join("")}
-        <tr><td colspan="4" class="muted small">…${int(rp.total - rp.rows.length)} more identical answers. The ${d} that differ are shown first.</td></tr></tbody></table></div>
-        ${guard ? `<label class="guard"><input type="checkbox" data-act="guard" ${guard.enabled ? "checked" : ""} ${rp.decision ? "disabled" : ""}>
-          <span><b>Keep ${esc(rp.old_model)} for requests mentioning ${guard.keywords.map((k) => `“${esc(k)}”`).join(" or ")}</b><br>
-          <span class="muted small">Covers ${guard.covers} of ${guard.of} differences · ${(guard.share * 100).toFixed(0)}% of traffic (${guard.requests} of ${rp.total} recorded requests) stays on the big model.</span></span></label>` : ""}
-        <p class="muted small" style="margin:8px 0 0">${esc(rp.source)} · replay cost ${usd(rp.replay_cost_usd)}</p>
-        ${rp.decision ? `<div class="callout ${rp.decision === "accepted" ? "green" : "red"}" style="margin-top:8px">You ${rp.decision} the replay. Prune recorded the pattern in the equivalence ledger (no prompts or answers stored).</div>`
-          : `<div class="actions"><button class="primary" data-act="decide" data-decision="accepted" ${state.busy ? "disabled" : ""}>Accept differences</button>
-             <button class="danger" data-act="decide" data-decision="rejected" ${state.busy ? "disabled" : ""}>Reject model switch</button></div>`}`;
+      const diffs = rp.rows.filter((r) => !r.same);
+      const dots = Array.from({ length: rp.total }, (_, i) => `<i class="${i < diffs.length ? "diff" : ""}" style="animation-delay:${(i % 50) * 8 + Math.floor(i / 50) * 20}ms"></i>`);
+      const r = rand(42); for (let i = dots.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [dots[i], dots[j]] = [dots[j], dots[i]]; }
+      body = `<div class="serif" style="font-size:34px">${int(rp.matched)} of ${int(rp.total)} answers stayed the same</div>
+        <div class="dots">${dots.join("")}</div>
+        <div class="muted" style="font-size:13px">The ${diffs.length} that changed:</div>
+        <div class="diffs">${diffs.map((d) => `<div class="q"><div class="t">“${esc(d.input)}”</div><div class="a">Before: <b>${esc(d.before)}</b> · After: <b>${esc(d.after)}</b></div></div>`).join("")}</div>
+        ${st.guard ? `<label class="switch"><input type="checkbox" data-act="guard" ${st.guard.enabled ? "checked" : ""} ${rp.decision ? "disabled" : ""}>
+          <span>Keep the bigger AI for messages that mention ${st.guard.keywords.map((k) => `“${esc(k)}”`).join(" or ")}</span></label>` : ""}
+        ${rp.decision ? `<div class="ok-line ${rp.decision === "accepted" ? "" : "bad"}"><span class="tick">${rp.decision === "accepted" ? "✓" : "✕"}</span>${rp.decision === "accepted" ? "You approved these answers" : "You kept the current AI"}</div>`
+          : `<div class="btns"><button class="primary" data-act="decide" data-decision="accepted" ${dis}>${busy("decide")}Looks good</button>
+             <button class="ghost" data-act="decide" data-decision="rejected" ${dis}>Keep the current AI</button></div>`}`;
     }
+    const ok = mf.proof === "ledger" || rp?.decision === "accepted";
+    s3 = `<div class="stage ${ok ? "done" : testsDone ? "now" : ""}"><div class="dot">${ok ? "✓" : "3"}</div><div><h3>Check the answers stay the same</h3>${body}</div></div>`;
   }
-  const s5 = step(5, "Prove the answers stay the same", s5sub, s5body, s5cls);
 
-  // 6. PR comment
-  const included = g.findings.filter((f) => f.included);
-  const advice = g.findings.filter((f) => !f.included);
-  const testsLine = !g.has_edits ? "" : st.tests ? (st.tests.passed ? `all passing` : `failing`) : "not run yet";
-  const s6 = step(6, "Open a pull request", g.has_edits ? (st.can_accept ? "ready" : esc(st.blocked_by || "")) : "advice only",
-    `<div class="pr"><div class="who"><b>prune-bot</b> commented on <code>${esc(g.file)}</code> line ${g.line}</div>
-      <h3>Prune found ${about(sm.saved_usd)}/month of waste in <code>${esc(g.function)}</code></h3>
-      <ul>${included.map((f) => `<li>${bulletFor(g, f)}</li>`).join("") || "<li>No automatic fix yet.</li>"}</ul>
-      ${g.has_edits ? `<div><b>Savings:</b> about ${about(sm.saved_usd)}/month (${usd(sm.cost_before)} → ${usd(sm.cost_after)}), plus an estimated ${rng(sm.saved_kwh)} kWh/month of energy and ${rng(sm.saved_kg_co2e)} kg CO₂e.
-        <b>Tests:</b> ${testsLine}</div>` : ""}
-      ${advice.length ? `<p class="advice">Not in this fix: ${advice.map((f) => `${esc(f.title.toLowerCase())}${f.saved_usd ? ` (could save ~${usd(f.saved_usd)}/mo)` : ""}`).join("; ")}.</p>` : ""}
-      ${g.has_edits ? `<div class="actions"><button class="primary" data-act="accept" ${st.can_accept && !state.busy ? "" : "disabled"}>${spinner("accept")}Accept fix</button>
-        ${st.can_accept ? "" : `<span class="muted small">${esc(st.blocked_by || "")}</span>`}</div>` : ""}</div>`,
-    st.can_accept ? "ok" : "");
+  const n = mf ? 4 : 3;
+  const s4 = `<div class="stage ${stage === 3 ? "now" : ""}"><div class="dot">${n}</div><div><h3>Apply it</h3>
+    <button class="primary big" data-act="accept" ${st.can_accept && !state.busy ? "" : "disabled"}>${busy("accept")}Apply fix · save ${about(sm.saved_usd)}/month</button></div></div>`;
 
-  const s7 = step(7, "Watch after it ships", "", `<span class="muted">After you accept, model changes go to 10% of traffic first and roll back automatically if users start correcting answers.</span>`, "dim");
+  const diffText = Object.values(st.diffs).join("\n").split("\n").filter((l) => !l.startsWith("+++") && !l.startsWith("---") && !l.startsWith("@@"))
+    .map((l) => `<span class="${l.startsWith("+") ? "add" : l.startsWith("-") ? "del" : ""}">${esc(l) || " "}</span>`).join("\n");
 
-  el.innerHTML = `<div class="detail-head"><div><h1>${esc(g.function)}()</h1>
-      <div class="where">${esc(g.file)}:${g.line} · ${esc(g.provider)} <code>${esc(g.site.api)}</code> · ${esc(g.model)}</div></div>
-      <div style="text-align:right"><div style="font-size:22px;font-weight:700;color:var(--green)">${usd(sm.cost_before)} → ${usd(sm.cost_after)}<span class="muted small"> /mo</span></div>
-      <div class="muted small">${rng(sm.kwh_before, 1)} → ${rng(sm.kwh_after, 1)} kWh/mo</div></div></div>
-    ${s1}${s2}${s3}${s4}${s5}${s6}${s7}`;
+  return `<div class="card">
+    <div class="wiz-head"><div><div class="label">${esc(friendly(g.function))}</div><div class="serif">Save ${about(sm.saved_usd)} a month</div></div>
+      <div class="pills"><span class="pill">${rng(sm.saved_kwh)} kWh less energy</span><span class="pill white">${usd(sm.cost_before)} → ${usd(sm.cost_after)}</span></div></div></div>
+    <div class="card" style="display:flex;flex-direction:column;gap:22px">${s1}${s2}${s3}${s4}</div>
+    <details class="code"><summary>Show the code change</summary><pre>${diffText}</pre></details>`;
 }
 
-function renderAccepted(id) {
-  const a = state.project.accepted.find((x) => x.id === id);
-  const el = $("#detail");
-  if (!a) { el.innerHTML = ""; return; }
-  el.innerHTML = `<div class="detail-head"><div><h1>${esc(a.function)}()</h1><div class="where">${esc(a.id.split("::")[0])} · accepted</div></div>
-      <div style="text-align:right"><div style="font-size:22px;font-weight:700;color:var(--green)">−${usd(a.saved_usd)}<span class="muted small"> /mo</span></div>
-      <div class="muted small">−${rng(a.saved_kwh, 1)} kWh/mo</div></div></div>
-    ${step(6, "Pull request merged", "accepted", `<div class="pr"><div class="who"><b>prune-bot</b> · fix accepted</div><ul>${a.titles.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>`, "ok")}
-    ${step(7, "Watch after it ships", "rollout", `<div class="rollout">${a.rollout.map((r) => `<div class="stage"><span class="pct">${r.pct}%</span><span>${esc(r.note)}</span></div>`).join("")}</div>`, "ok")}`;
-}
-
-// ---------- lower panels ----------
-
-function renderBudgets() {
+function renderCheck() {
+  const el = $("#view-check");
   const p = state.project;
-  const el = $("#budgetPanel");
-  if (!p) { el.innerHTML = ""; return; }
-  const rows = p.budgets;
-  el.innerHTML = `<div class="panel-head"><h2>Monthly budgets</h2><span class="muted small">from prune.toml</span></div>
-    ${rows.length ? rows.map((r) => {
-      const pct = r.budget ? Math.min(100, (r.cost / r.budget) * 100) : 0;
-      return `<div class="budget-row"><span><b>${esc(r.feature)}</b> ${r.over ? '<span class="chip red">over budget</span>' : '<span class="chip green">within</span>'}</span>
-        <span class="nums">${usd(r.cost)} / ${usd(r.budget)}</span><div class="bar"><i class="${r.over ? "over" : ""}" style="width:${pct}%"></i></div></div>`;
-    }).join("") : `<p class="muted">No prune.toml in this project. Add one to set a monthly AI budget per feature.</p>`}
-    <p class="muted small" style="margin:6px 0 0">Any change adding more than <b>${usd(p.approval_threshold)}/month</b> needs a manager's approval.</p>`;
-}
-
-function renderIncoming() {
-  const p = state.project;
-  const el = $("#incomingPanel");
   if (!p) { el.innerHTML = ""; return; }
   if (el.dataset.project !== p.id) {
-    const inc = p.incoming;
     el.dataset.project = p.id;
-    el.innerHTML = `<div class="panel-head"><h2>Review a new change</h2><span class="muted small">budget check before it ships</span></div>
-      ${inc ? `<p style="margin:0 0 6px"><b>${esc(inc.title)}</b><br><span class="muted small">${esc(inc.traffic_source)}</span></p>` : `<p class="muted" style="margin:0 0 6px">Paste new code to see what it adds per month.</p>`}
-      <div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap"><input id="incFile" value="${esc(inc?.file || "new_feature.py")}" style="flex:1;min-width:140px">
-        <input id="incCalls" type="number" value="${inc?.calls_per_month || 10000}" style="width:120px" title="Calls per month (estimate)"></div>
-      <details ${inc ? "" : "open"}><summary class="small muted" style="cursor:pointer">Code</summary><textarea id="incCode" class="code-input" spellcheck="false">${esc(inc?.code || "")}</textarea></details>
-      <div class="actions"><button class="primary" data-act="review">Check this change</button></div><div id="incResult"></div>`;
+    const inc = p.incoming;
+    el.innerHTML = `<div class="check-grid">
+      <div class="card"><h2 class="title">How much will new code cost?</h2>
+        <p class="muted" style="margin:0">${inc ? esc(inc.title.replace(/^PR #\d+:\s*/, "")) : "Paste a new feature before it goes live."}</p>
+        <label class="field">Times it will run per month<input id="incCalls" type="number" value="${inc?.calls_per_month || 10000}"></label>
+        <input id="incFile" type="hidden" value="${esc(inc?.file || "new_feature.py")}">
+        <textarea id="incCode" spellcheck="false" placeholder="Paste the new code here">${esc(inc?.code || "")}</textarea>
+        <div class="btns" style="margin-top:14px"><button class="primary big" data-act="review">Estimate the cost</button></div></div>
+      <div class="card verdict" id="verdict"></div></div>`;
   }
-  const r = state.review, out = $("#incResult");
-  if (!r) { out.innerHTML = ""; return; }
-  const c = r.check;
-  out.innerHTML = `<div class="check ${c.needs_approval || c.over_budget ? "block" : "okay"}">
-      <div class="big">This adds about ${about(r.added_usd)} a month</div>
-      ${r.items.map((i) => `<div class="small"><code>${esc(i.function)}()</code> L${i.line}: ${int(i.calls)} calls × ${int(i.input_tokens)}→${int(i.output_tokens)} tokens on ${esc(i.model)} · ${rng(i.kwh, 1)} kWh/mo</div>`).join("")}
-      <div style="margin-top:6px">${c.needs_approval ? `⛔ Over the ${usd(c.threshold)}/month limit: <b>needs a manager's approval</b> before merge.` : `✓ Under the ${usd(c.threshold)}/month approval limit.`}</div>
-      ${c.feature ? `<div>${c.over_budget ? "⛔" : "✓"} Feature <b>${esc(c.feature)}</b>: ${usd(c.feature_cost_now)} → ${usd(c.feature_cost_after)} of a ${usd(c.budget)} budget.</div>` : ""}
-      ${r.items.some((i) => i.suggestions.length) ? `<div class="small" style="margin-top:4px">Prune also suggests: ${[...new Set(r.items.flatMap((i) => i.suggestions))].map(esc).join(", ")}.</div>` : ""}
-      <div class="muted small" style="margin-top:4px">Estimate: new code has no usage data yet.</div></div>`;
+  const v = $("#verdict"), r = state.review;
+  if (!r) { v.innerHTML = `${gaugeArt(0, p.approval_threshold)}<p class="muted">Your estimate shows up here.</p>`; return; }
+  const c = r.check, stop = c.needs_approval || c.over_budget;
+  const kwh = r.items.reduce((a, i) => [a[0] + i.kwh[0], a[1] + i.kwh[1]], [0, 0]);
+  v.innerHTML = `${gaugeArt(r.added_usd, c.threshold)}
+    <div class="label" style="margin-top:6px">This would add</div>
+    <div class="serif">${about(r.added_usd)} a month</div>
+    <div class="muted">and ${rng(kwh)} kWh of energy</div>
+    <div class="stamp ${stop ? "stop" : "go"}">${stop ? "Needs a manager's OK" : "Within your limits"}</div>
+    <p class="muted" style="font-size:13px;max-width:320px">${c.needs_approval ? `Your team asks for approval above ${usd(c.threshold)} a month.` : ""}
+    ${c.feature && c.over_budget ? ` It would push “${esc(c.feature)}” past its ${usd(c.budget)} limit.` : ""}</p>`;
 }
 
-function renderLedger() {
-  const el = $("#ledgerPanel");
-  const entries = state.ledger;
-  el.innerHTML = `<div class="panel-head"><h2>Equivalence ledger</h2><button class="ghost small" data-act="ledger-reset">Reset</button></div>
-    <p class="muted small" style="margin:0 0 8px">What accepted and rejected replays taught Prune. Stores the task pattern, label count, models and match rate. Never prompts or answers.</p>
-    ${entries.length ? entries.slice().reverse().map((e) => `<div class="ledger-entry">
-      <div class="lesson">“${esc(e.lesson)}”</div>
-      <div class="muted small">${esc(e.from_model)} → ${esc(e.to_model)} · ${int(e.matched)}/${int(e.total)} · ${e.label_count ?? "–"} labels ·
-        <span class="chip ${e.decision === "accepted" ? "green" : "red"}">${esc(e.decision)}</span> · ${esc(e.recorded_at)}</div></div>`).join("")
-      : `<p class="muted">Empty. Accept a replay on StepUp, then open Northwind Bank: its similar 4-label task gets a high-confidence suggestion with no replay.</p>`}`;
+function renderLimits() {
+  const el = $("#view-limits");
+  const p = state.project;
+  if (!p) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="intro"><div><h2 class="title">Monthly limits</h2><p>Each part of your product gets an AI budget. The white inner ring means it's over.</p></div></div>
+    ${p.budgets.length ? `<div class="rings">${p.budgets.map((b) => `<div class="card ring ${b.over ? "over" : ""}">${ringArt(b.cost, b.budget)}
+      <div class="n">${esc(b.feature.replace(/-/g, " "))}</div><div class="s">${b.over ? `${usd(b.cost - b.budget)} over` : `${usd(b.budget - b.cost)} to spare`}</div></div>`).join("")}</div>`
+      : `<div class="card empty-art" style="margin-top:22px">${sproutArt()}<p class="muted">No limits set for this project yet.</p></div>`}`;
+}
+
+function renderLearned() {
+  const el = $("#view-learned");
+  const e = state.ledger;
+  el.innerHTML = `<div class="intro"><div><h2 class="title">What Prune has learned</h2>
+      <p>Every answer comparison you approve teaches Prune which cheaper choices are safe, so similar fixes elsewhere need no comparison. Only the pattern is kept, never your messages.</p></div>
+      ${e.length ? `<button class="ghost" data-act="ledger-reset">Start over</button>` : ""}</div>
+    ${e.length ? `<div class="lessons">${e.slice().reverse().map((x) => {
+      const miss = x.matched < x.total ? Math.max(1, Math.round((1 - x.match_rate) * 50)) : 0;
+      const bars = Array.from({ length: 50 }, (_, i) => { const same = i < 50 - miss;
+        return `<rect x="${i * 12}" y="${same ? 10 : 30}" width="7" height="${same ? 50 : 30}" rx="3.5" fill="${same ? "url(#gPurple)" : "#fff"}"/>`; }).join("");
+      return `<div class="card lesson"><div class="label">${x.decision === "accepted" ? "Approved" : "Turned down"} · ${esc(x.recorded_at.split(" ")[0])}</div>
+        <div class="serif">${esc(x.lesson)}</div><svg viewBox="0 0 600 70" preserveAspectRatio="none">${bars}</svg>
+        <div class="muted" style="font-size:13px">${int(x.matched)} of ${int(x.total)} answers matched</div></div>`;
+    }).join("")}</div>`
+      : `<div class="card empty-art" style="margin-top:22px">${sproutArt()}<p class="muted">Nothing yet. Approve an answer comparison in Fixes and it shows up here.</p></div>`}`;
 }
 
 function render() {
-  renderMeters();
-  renderFindings();
-  renderSites();
-  renderDetail();
-  renderBudgets();
-  renderIncoming();
-  renderLedger();
-  $("#sourceNote").textContent = state.project ? `Traffic source: ${state.project.usage_source}` : "";
+  const p = state.project;
+  $("#fixCount").textContent = p ? p.groups.filter((g) => g.has_edits).length || "" : "";
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("active", b.dataset.tab === state.tab));
+  document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === "view-" + state.tab));
+  ({ home: renderHome, fixes: renderFixes, check: renderCheck, limits: renderLimits, learned: renderLearned })[state.tab]();
 }
 
-// ---------- actions ----------
+function go(tab) {
+  state.tab = tab;
+  history.replaceState(null, "", "#" + tab);
+  render();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// ---------- events ----------
 
 document.addEventListener("click", async (e) => {
+  const t = e.target.closest("[data-tab]");
+  if (t) { e.preventDefault(); go(t.dataset.tab); return; }
+  const g = e.target.closest("[data-go]");
+  if (g) { go(g.dataset.go); return; }
+  const open = e.target.closest("[data-open]");
+  if (open) { if (open.dataset.open) state.selected = open.dataset.open; go("fixes"); return; }
   const sel = e.target.closest("[data-select]");
-  if (sel) { state.selected = sel.dataset.select; render(); $("#detail").scrollIntoView({ behavior: "smooth", block: "start" }); return; }
-  const tab = e.target.closest("#projectTabs button");
-  if (tab) {
-    if (tab.dataset.paste !== undefined) { $("#pasteDialog").showModal(); return; }
-    loadSample(tab.dataset.sample);
+  if (sel) {
+    state.selected = sel.dataset.select;
+    renderFixes();
+    if (innerWidth < 960) $("#wizard").scrollIntoView({ behavior: "smooth", block: "start" });
     return;
   }
   const btn = e.target.closest("[data-act]");
   if (!btn || btn.type === "checkbox") return;
-  const p = state.project, gid = state.selected;
-  const act = btn.dataset.act;
-  if (act === "tests") await run("tests", async () => { const r = await api("/api/tests", { project: p.id, group: gid }); setProject(r.project); });
-  if (act === "replay") await run("replay", async () => { const r = await api("/api/replay", { project: p.id, group: gid }); setProject(r.project); });
+  const p = state.project, gid = state.selected, act = btn.dataset.act;
+  if (act === "tests") await run("tests", async () => setProject((await api("/api/tests", { project: p.id, group: gid })).project));
+  if (act === "replay") await run("replay", async () => {
+    setProject((await api("/api/replay", { project: p.id, group: gid })).project);
+    await retestIfChanged(gid);
+  });
   if (act === "decide") await run("decide", async () => {
     const r = await api("/api/replay/decision", { project: p.id, group: gid, decision: btn.dataset.decision });
     setProject(r.project);
-    if (r.ledger_entry) toast("Recorded in the equivalence ledger: " + r.ledger_entry.lesson);
+    if (r.ledger_entry) toast("Prune will remember this for similar fixes");
     await refreshLedger();
-    const g = state.project.groups.find((x) => x.id === gid);
-    if (g && g.has_edits && !g.status.tests) {  // the fix changed (guard) or was never tested: test it now
-      const t = await api("/api/tests", { project: p.id, group: gid });
-      setProject(t.project);
-    }
+    await retestIfChanged(gid);
   });
   if (act === "accept") await run("accept", async () => {
     const r = await api("/api/accept", { project: p.id, group: gid });
     setProject(r.project);
     state.selected = "accepted:" + r.accepted.id;
-    toast(`Fix accepted: −${usd(r.accepted.saved_usd)}/month, −${rng(r.accepted.saved_kwh)} kWh/month`);
+    toast(`Done. Saving ${about(r.accepted.saved_usd)} a month`);
   });
   if (act === "review") {
     const body = { project: p.id, file: $("#incFile").value, code: $("#incCode").value, calls_per_month: $("#incCalls").value };
     try { state.review = await api("/api/review-change", body); } catch (err) { toast(err.message); }
-    renderIncoming();
+    renderCheck();
   }
   if (act === "ledger-reset") {
-    if (!confirm("Clear every lesson in the equivalence ledger?")) return;
+    if (!confirm("Forget everything Prune has learned?")) return;
     await api("/api/ledger/reset", {});
     await refreshLedger();
     if (p?.sample) loadSample(p.sample);
   }
 });
 
+// A changed fix (e.g. the "keep the bigger AI" option) must pass the safety check again.
+async function retestIfChanged(gid) {
+  const grp = state.project.groups.find((x) => x.id === gid);
+  if (grp && grp.has_edits && !grp.status.tests) {
+    setProject((await api("/api/tests", { project: state.project.id, group: gid })).project);
+  }
+}
+
 document.addEventListener("change", async (e) => {
+  if (e.target.id === "projectPick") {
+    if (e.target.value === "paste") { $("#pasteDialog").showModal(); return; }
+    loadSample(e.target.value);
+    return;
+  }
   if (e.target.dataset.act !== "guard") return;
   const p = state.project;
-  await run("guard", async () => setProject((await api("/api/guard", { project: p.id, group: state.selected, enabled: e.target.checked })).project));
+  await run("guard", async () => {
+    setProject((await api("/api/guard", { project: p.id, group: state.selected, enabled: e.target.checked })).project);
+    await retestIfChanged(state.selected);
+  });
 });
 
 const EXAMPLE = `import anthropic
@@ -463,15 +598,19 @@ def chat(history, question):
 
 $("#pasteExample").addEventListener("click", () => { $("#pasteCode").value = EXAMPLE; });
 $("#pasteDialog").addEventListener("close", async () => {
-  if ($("#pasteDialog").returnValue !== "go") return;
-  const code = $("#pasteCode").value;
-  if (!code.trim()) { toast("Paste some code first"); return; }
+  if ($("#pasteDialog").returnValue !== "go" || !$("#pasteCode").value.trim()) {
+    $("#projectPick").value = state.project?.sample || state.lastSample;
+    return;
+  }
   await run("load", async () => {
-    setProject(await api("/api/load", { paste: { filename: $("#pasteName").value, code, calls_per_month: $("#pasteCalls").value } }));
-    state.review = null;
-    state.selected = state.project.groups[0]?.id || null;
-    document.querySelectorAll("#projectTabs button").forEach((b) => b.classList.toggle("active", b.dataset.paste !== undefined));
+    setProject(await api("/api/load", { paste: { filename: $("#pasteName").value, code: $("#pasteCode").value, calls_per_month: $("#pasteCalls").value } }), true);
   });
 });
 
+const TABS = ["home", "fixes", "check", "limits", "learned"];
+window.addEventListener("hashchange", () => {
+  const t = location.hash.slice(1);
+  if (TABS.includes(t) && t !== state.tab) { state.tab = t; if (state.project) render(); }
+});
+state.tab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "home";
 loadSample("stepup");
